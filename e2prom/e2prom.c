@@ -306,6 +306,12 @@ void e2prom_read_0xA0(void)
     //     LOG_W("page10 e2prom_recData[%d]:%02x\r\n",i,e2prom_recData[i]);
     // }
 
+    if(e2prom_recData[0]==0xff)
+    {
+        LOG_W("e2prom_recData[0]:%x\r\n", e2prom_recData[0]);
+        return;
+    }
+
     char correct_pub_topic[128];
     char temp_pub_topic[128];
     memset(correct_pub_topic,'\0',sizeof(correct_pub_topic)/sizeof(correct_pub_topic[0]));
@@ -332,7 +338,7 @@ void e2prom_read_0xA0(void)
 
     if(e2prom_recData[1]==0 || e2prom_recData[1]==1)
     {
-        if(STORG_fan0State!=e2prom_recData[1] && wifi_state)
+        if(wifi_state)
         {
             STORG_fan0State=e2prom_recData[1];
             strcpy(temp_pub_topic, correct_pub_topic);
@@ -352,7 +358,7 @@ void e2prom_read_0xA0(void)
 
     if(e2prom_recData[2]==0 || e2prom_recData[2]==1)
     {
-        if(STORG_light0State!=e2prom_recData[2] && wifi_state)
+        if(wifi_state)
         {
             STORG_light0State=e2prom_recData[2];
             strcpy(temp_pub_topic, correct_pub_topic);
@@ -371,7 +377,7 @@ void e2prom_read_0xA0(void)
 
     if(e2prom_recData[3]==0 || e2prom_recData[3]==1)
     {
-        if(STORG_light1State!=e2prom_recData[3] && wifi_state)
+        if(wifi_state)
         {
             STORG_light1State=e2prom_recData[3];
             strcpy(temp_pub_topic, correct_pub_topic);
@@ -391,7 +397,7 @@ void e2prom_read_0xA0(void)
 
     if(e2prom_recData[4]==0 || e2prom_recData[4]==1)
     {
-        if(STORG_servo0State!=e2prom_recData[4] && wifi_state)
+        if(wifi_state)
         {
             STORG_servo0State=e2prom_recData[4];
             strcpy(temp_pub_topic, correct_pub_topic);
@@ -411,6 +417,9 @@ void e2prom_read_0xA0(void)
 
 
 
+    // set the 0xA0 to 0xff
+    write_byte(0xff,0xA0);
+    LOG_W("set 0xA0 to 0xff\r\n");
 }
 
 

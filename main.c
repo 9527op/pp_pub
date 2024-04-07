@@ -89,6 +89,10 @@ volatile int32_t STORG_adcVal = 0;
 volatile uint8_t STORG_temperature = 0;       //温度      ------------------>temperature_integer
 volatile uint8_t STORG_humidity = 0;          //湿度      ------------------>humidity_integer
 
+//dig_read IO16,17
+volatile uint8_t STORG_IO16RDig = 0;
+volatile uint8_t STORG_IO17RDig = 0;
+
 
 
 // -------------------------------------------------------------------------------
@@ -128,9 +132,8 @@ volatile uint8_t STORG_humidity = 0;          //湿度      ------------------>h
    ****************************************************************************/
 
 static struct bflb_device_s *uart0;
-struct bflb_device_s *i2c0;
-struct bflb_device_s *i2c1;
-
+struct bflb_device_s *i2c0 = NULL;
+struct bflb_device_s *i2c1 = NULL;
 
 // extern void shell_init_with_task(struct bflb_device_s* shell);
 
@@ -478,7 +481,7 @@ void e2prom_task(void* param)
 
 
 
-        vTaskDelay(850/portTICK_PERIOD_MS);
+        vTaskDelay(600/portTICK_PERIOD_MS);
     }
 }
 
@@ -645,7 +648,7 @@ void switch_devices_task(void* param)
             /* room0 */
             if (STORG_light0State_old != STORG_light0State)
             {
-                if(STORG_light1State)
+                if(STORG_light0State)
                 {
                     start_rgb();
                 }
@@ -977,7 +980,7 @@ int main(void)
     // need i2c 没有连接i2c设备，则设备阻塞
 	/*OLED初始化 和 e2prom msgs初始化*/
 
-	OLED_Init();
+	// OLED_Init();
 	// e2prom_i2cMsgs_init();
 
 

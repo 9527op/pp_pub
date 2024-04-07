@@ -7,6 +7,9 @@
 #include "log.h"
 
 
+extern uint8_t STORG_IO16RDig;
+extern uint8_t STORG_IO17RDig;
+
 // USING IO16,IO17,IO18
 
 struct bflb_device_s *gpio_dig=NULL;
@@ -35,7 +38,9 @@ void read_dig(void)
 {
     if(gpio_dig!=NULL)
     {
-        printf("GPIO_PIN_16=%x\r\nGPIO_PIN_17=%x\r\n", bflb_gpio_read(gpio_dig, GPIO_PIN_16), bflb_gpio_read(gpio_dig, GPIO_PIN_17));
+        LOG_I("GPIO_PIN_16=%x\r\nGPIO_PIN_17=%x\r\n", bflb_gpio_read(gpio_dig, GPIO_PIN_16), bflb_gpio_read(gpio_dig, GPIO_PIN_17));
+        STORG_IO16RDig = bflb_gpio_read(gpio_dig, GPIO_PIN_16);
+        STORG_IO17RDig = bflb_gpio_read(gpio_dig, GPIO_PIN_17);
     }
 }
 
