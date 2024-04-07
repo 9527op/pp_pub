@@ -31,8 +31,8 @@ extern uint8_t STORG_light0State;   //卧室灯
 extern uint8_t STORG_light1State;   //客厅灯
 
 // adc
-extern uint8_t STORG_adcCha;
-extern int32_t STORG_adcVal;
+extern uint8_t STORG_adc0Cha;
+extern int32_t STORG_adc0Val;
 
 // 温湿度写入
 extern uint8_t STORG_temperature;       //温度      ------------------>dht11_temperature

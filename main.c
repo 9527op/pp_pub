@@ -82,16 +82,16 @@ volatile uint8_t STORG_light0State = 0;     //卧室灯 room0
 volatile uint8_t STORG_light1State = 0;     //客厅灯 live
 
 // adc
-volatile uint8_t STORG_adcCha = 0;
-volatile int32_t STORG_adcVal = 0;
+volatile uint8_t STORG_adc0Cha = 0;
+volatile int32_t STORG_adc0Val = 0;
 
 // dht11
 volatile uint8_t STORG_temperature = 0;       //温度      ------------------>temperature_integer
 volatile uint8_t STORG_humidity = 0;          //湿度      ------------------>humidity_integer
 
 //dig_read IO16,17
-volatile uint8_t STORG_IO16RDig = 0;
-volatile uint8_t STORG_IO17RDig = 0;
+volatile uint8_t STORG_IO16RDig = 0x1f;
+volatile uint8_t STORG_IO17RDig = 0x1f;
 
 
 
@@ -196,6 +196,9 @@ void i2c0_init(void)
 #define ADC_STACK_SIZE  (1024)
 #define ADC_PRIORITY (3)
 // 
+#define DIG_READ_STACK_SIZE  (1024)
+#define DIG_READ_PRIORITY (3)
+// 
 #define SWITCH_DEVICES_STACK_SIZE  (1024*2)
 #define SWITCH_DEVICES_PRIORITY (4)
 // 
@@ -212,6 +215,7 @@ static TaskHandle_t e2prom_task_hd;
 static TaskHandle_t servo_task_hd;
 static TaskHandle_t dht11_task_hd;
 static TaskHandle_t adc_task_hd;
+static TaskHandle_t digRead_task_hd;
 static TaskHandle_t switch_devices_task_hd;
 static TaskHandle_t test_task_hd;
 
@@ -374,7 +378,7 @@ sub_logic_func_end:
 // ---------------------------------------------------
 // ---------------------------------------------------
 // ---------------------------------------------------
-char* uint8ToChar(uint8_t oval)
+char* intToChar(uint32_t oval)
 {
     uint8_t gen=0;
     uint8_t nvaln=0;
@@ -384,27 +388,26 @@ char* uint8ToChar(uint8_t oval)
     memset(nval,'\0',16);
     memset(rnval,'\0',16);
 
-    LOG_I("uint8ToChar oval:%d\r\n",oval);
+    LOG_I("intToChar oval:%d\r\n",oval);
 
 
     while (oval % 10 != 0 || oval > 0)
     {
         gen = oval % 10;
-        *(nval + nvaln) = (char)(gen + 48);     //'0' --ascii值 48
+        *(nval + nvaln) = (char)(gen + 48); //'0' --ascii值 48
         nvaln++;
-        oval/=10;
+        oval /= 10;
     }
 
     // reverse
-    for(uint8_t i=0;i<nvaln;i++)
+    for (uint8_t i = 0; i < nvaln; i++)
     {
         *(rnval + i) = *(nval + nvaln - i - 1);
     }
 
     free(nval);
 
-    LOG_I("uint8ToChar rnval:%s\r\n",rnval);
-
+    LOG_I("intToChar rnval:%s\r\n", rnval);
 
     return rnval;
 }
@@ -516,7 +519,7 @@ void dht11_task(void* param)
     char correct_pub_topic[128];
     char temp_pub_topic[128];
     memset(correct_pub_topic,'\0',sizeof(correct_pub_topic)/sizeof(correct_pub_topic[0]));
-    memset(correct_pub_topic,'\0',sizeof(temp_pub_topic)/sizeof(temp_pub_topic[0]));
+    memset(temp_pub_topic,'\0',sizeof(temp_pub_topic)/sizeof(temp_pub_topic[0]));
 
     strcpy(correct_pub_topic, LEAGAL_PUB_TOPIC_HEAD);
     strcat(correct_pub_topic, "/");
@@ -552,7 +555,7 @@ void dht11_task(void* param)
             {
                 strcat(temp_pub_topic, "/sensor0_temperature");
 
-                val_ptr = uint8ToChar(STORG_temperature);
+                val_ptr = intToChar(STORG_temperature);
                 mqtt_publier_a_time(temp_pub_topic, val_ptr);
                 STORG_temperature_old = STORG_temperature;
 
@@ -565,7 +568,7 @@ void dht11_task(void* param)
             {
                 strcat(temp_pub_topic, "/sensor0_humidity");
 
-                val_ptr = uint8ToChar(STORG_humidity);
+                val_ptr = intToChar(STORG_humidity);
                 mqtt_publier_a_time(temp_pub_topic, val_ptr);
                 STORG_humidity_old = STORG_humidity;
 
@@ -582,7 +585,19 @@ void dht11_task(void* param)
 void adc_task(void* param)
 {
     struct bflb_device_s* gpio;
-    
+
+    int32_t STORG_adc0Val_old = -1;
+    char *val_ptr = NULL;
+
+    char correct0_pub_topic[128];
+    memset(correct0_pub_topic,'\0',sizeof(correct0_pub_topic)/sizeof(correct0_pub_topic[0]));
+    strcpy(correct0_pub_topic, LEAGAL_PUB_TOPIC_HEAD);
+    strcat(correct0_pub_topic, "/");
+    strcat(correct0_pub_topic, LEAGAL_PUB_TOPIC_USER);
+    strcat(correct0_pub_topic, "/");
+    strcat(correct0_pub_topic, IN_WHERE_STR);
+    strcat(correct0_pub_topic, "/sensor0_adc0Val");
+
     gpio = bflb_device_get_by_name("gpio");
     /* ADC_CH0 */
     bflb_gpio_init(gpio, GPIO_PIN_20, GPIO_ANALOG | GPIO_SMT_EN | GPIO_DRV_0);
@@ -595,15 +610,82 @@ void adc_task(void* param)
 
         start_adc();
 
-        if(!xTaskResumeAll())
+        if (!xTaskResumeAll())
         {
             // LOG_I("taskYIELD\r\n");
             taskYIELD();
         }
+
+
+
+        // adc0
+        if (STORG_adc0Val_old != STORG_adc0Val)
+        {
+            val_ptr = intToChar(STORG_adc0Val);
+            mqtt_publier_a_time(correct0_pub_topic, val_ptr);
+            STORG_adc0Val_old = STORG_adc0Val;
+
+            free(val_ptr);
+            val_ptr = NULL;
+        }
+
         vTaskDelay(400/portTICK_PERIOD_MS);
     }
 }
 
+void digRead_task(void* param)
+{
+    uint8_t STORG_IO17RDig_old = 2;
+    uint8_t STORG_IO16RDig_old = 2;
+    char *val_ptr = NULL;
+
+    char correct_pub_topic[128];
+    char tmp_pub_topic[128];
+    memset(correct_pub_topic,'\0',sizeof(correct_pub_topic)/sizeof(correct_pub_topic[0]));
+    memset(tmp_pub_topic,'\0',sizeof(tmp_pub_topic)/sizeof(tmp_pub_topic[0]));
+    strcpy(correct_pub_topic, LEAGAL_PUB_TOPIC_HEAD);
+    strcat(correct_pub_topic, "/");
+    strcat(correct_pub_topic, LEAGAL_PUB_TOPIC_USER);
+    strcat(correct_pub_topic, "/");
+    strcat(correct_pub_topic, IN_WHERE_STR);
+    // strcat(correct_pub_topic, "/sensor0_IO16RDig");
+    // strcat(correct_pub_topic, "/sensor0_IO17RDig");
+
+    while(1)
+    {
+        //get IO16,IO17 data
+        read_dig();
+
+        if (STORG_IO17RDig_old != STORG_IO17RDig && STORG_IO17RDig < 2)
+        {
+            strcpy(tmp_pub_topic, correct_pub_topic);
+            strcat(tmp_pub_topic, "/sensor0_IO17RDig");
+
+            val_ptr = intToChar(STORG_IO17RDig);
+
+            mqtt_publier_a_time(tmp_pub_topic, val_ptr);
+            STORG_IO17RDig_old = STORG_IO17RDig;
+
+            free(val_ptr);
+            val_ptr = NULL;
+        }
+        if (STORG_IO16RDig_old != STORG_IO16RDig && STORG_IO16RDig < 2)
+        {
+            strcpy(tmp_pub_topic, correct_pub_topic);
+            strcat(tmp_pub_topic, "/sensor0_IO16RDig");
+
+            val_ptr = intToChar(STORG_IO16RDig);
+
+            mqtt_publier_a_time(tmp_pub_topic, val_ptr);
+            STORG_IO16RDig_old = STORG_IO16RDig;
+
+            free(val_ptr);
+            val_ptr = NULL;
+        }
+
+        vTaskDelay(400 / portTICK_PERIOD_MS);
+    }
+}
 
 void switch_devices_task(void* param)
 {
@@ -878,8 +960,8 @@ void oledDisplay_test_task(void* param)
         OLED_ShowHexNum(64,16,STORG_servo0State,2,OLED_8X16);
 
         OLED_ShowString(0,32,"chl", OLED_8X16);
-        OLED_ShowNum(32,32,STORG_adcCha,2,OLED_8X16);
-        OLED_ShowNum(64,32,STORG_adcVal,5,OLED_8X16);
+        OLED_ShowNum(32,32,STORG_adc0Cha,2,OLED_8X16);
+        OLED_ShowNum(64,32,STORG_adc0Val,5,OLED_8X16);
     
     	OLED_Update();
         vTaskDelay(1000/portTICK_PERIOD_MS);
@@ -945,6 +1027,10 @@ void create_server_task(void)
 
     // adc
     // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
+
+    // dig_read
+    // xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
+
 
     // servo
     // xTaskCreate(servo_task, (char*)"servo_task", 1024*3, NULL, 4, &servo_task_hd);

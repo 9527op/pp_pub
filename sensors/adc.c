@@ -10,8 +10,8 @@
 
 // ---------------------------------------------------
 
-extern int32_t STORG_adcVal;
-extern uint8_t STORG_adcCha;
+extern int32_t STORG_adc0Val;
+extern uint8_t STORG_adc0Cha;
 
 // ---------------------------------------------------
 
@@ -76,8 +76,8 @@ void start_adc(void)
         // LOG_W("one channel is read over\r\n");
         
 
-        STORG_adcCha = result.pos_chan;
-        STORG_adcVal = result.millivolt;
+        STORG_adc0Cha = result.pos_chan;
+        STORG_adc0Val = result.millivolt;
     }
     // 
     bflb_adc_stop_conversion(adc);
