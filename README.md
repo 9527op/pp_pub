@@ -21,28 +21,51 @@ make CHIP=bl616 BOARD=bl616dk
 make flash COMX=xxx ## xxx is your com name
 ```
 
-## How use wifi mqtt pub test
+## 这里才是真正的常规信息
 
-1. Find some mqtt server or your deployed a mqtt server first. This case default used `test.mosquitto.org:1883` server test; or used EMQX mqtt public server test.
-2. Use mqtt client to test if the server is working. You can install `MQTTBox` on windows for testing, you can install it from Microsoft Store. Or use EMQX's online mqtt client for testing.
-3. If the server works fine, then you can continue with the next test.
-4. connect your WiFi.
-5. connect MQTT server. command like `mqtt_pub` or `mqtt_pub <server domain name or server ip> <server port> <topic>`.
-6. If the command is executed successfully, a message will be uploaded every 3 seconds.
+### $$ 目前外设支持 $$ ###
+#### $$当前外设控制或输出变量，统一由在main.c文件中定义的、对应STORG\_开头的变量存储$$ ####
+```
+控制(switch类)
 
-Log:
-
-```bash
-bouffalolab />wifi_sta_connect _nmd xinhuaxiang_adm
-bouffalolab />mqtt_pub 192.168.0.103 1883 mytopic/lzb
-bouffalolab />mqtt_pub_only
-Press ENTER to publish the current time.
-Press CTRL-C to exit.
-mqtt_pub published : "{"hello mqtt by bl616/8 !"}
-Now time is 2023-06-16 00:00:00"
-mqtt_pub published : "{"hello mqtt by bl616/8 !"}
-Now time is 2023-06-16 00:00:03"
-mqtt_pub stop publish to test.mosquitto.org
-^C
+风扇                sensors/dig.c IO18  5v小风扇
+灯                  light/light.c IO12,14,15 开发板自带
+舵机                pwm_2/pwm_2.c IO24
 ```
 
+```
+传感器(输出类)
+
+温湿度传感器        sensors/dht11.c IO23  型号dht11
+```
+
+
+## 语音控制端
+```c
+修改main.c中的
+    CONTROLLER为1
+打开main函数中
+    OLED_Init();
+	e2prom_i2cMsgs_init();
+打开create_server_task中相应任务，如
+    xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
+    xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+    xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+    视情况调整
+```
+
+## 家具设备端
+```c
+修改main.c中的
+    CONTROLLER为0
+    调整以下变量为相应值
+    IN_WHERE 0
+    IN_WHERE_STR "live"
+关闭main函数中
+    OLED_Init();
+	e2prom_i2cMsgs_init();
+打开create_server_task中相应任务，如
+    xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
+    xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
+    视情况调整
+```

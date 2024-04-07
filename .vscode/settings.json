@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "tcpip.h": "c",
+        "task.h": "c",
+        "timers.h": "c",
+        "bl_fw_api.h": "c",
+        "wifi_mgmr.h": "c",
+        "bflb_l1c.h": "c",
+        "bflb_mtimer.h": "c",
+        "bflb_uart.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
+}
