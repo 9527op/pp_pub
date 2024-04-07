@@ -91,23 +91,9 @@ void DHT_START()
     dht11_temperature = temperature_integer + (temperature_decimal / 10.0);
 
     // 数据有效
-    // LOG_I("Humidity: %.1f%%\n", dht11_humidity);
-    // LOG_I("Temperature: %.1fC\n", dht11_temperature);
+    LOG_I("Humidity: %.1f%%\n", dht11_humidity);
+    LOG_I("Temperature: %.1fC\n", dht11_temperature);
 
     STORG_temperature=temperature_integer;
     STORG_humidity=humidity_integer;
 }
-
-// void dht_cycle_read(void)
-// {
-//     while(1)
-//     {
-//         // 挂起其它任务
-//         vTaskSuspendAll();
-//         DHT_START();
-//         // 恢复其它任务
-//         xTaskResumeAll();
-//         LOG_I("DHT读取一次\r\n");
-//         vTaskDelay(1000/portTICK_PERIOD_MS);
-//     }
-// }

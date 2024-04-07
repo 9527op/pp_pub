@@ -37,7 +37,7 @@ const char* mqttp_name=UMQTT_TOPUB_NAME_TEST;
 
 shell_sig_func_ptr abort_exec_pub;
 
-static TaskHandle_t client_daemon_pub;
+static TaskHandle_t client_daemon_pub = NULL;
 struct mqtt_client client_pub;
 int test_sockfd_pub;
 int the_sockfd_pub = -1;
@@ -134,9 +134,11 @@ static void test_close(int sig)
 
     abort_exec_pub(sig);
 
-
-    the_sockfd_pub=-1;
-    vTaskDelete(client_daemon_pub);
+    the_sockfd_pub = -1;
+    if (client_daemon_pub != NULL)
+    {
+        vTaskDelete(client_daemon_pub);
+    }
 }
 
 
@@ -179,6 +181,7 @@ void mqtt_publier_init()
     if (the_sockfd_pub < 0) {
         LOG_W("Failed to open socket: %d\r\n", the_sockfd_pub);
         test_close(SHELL_SIGINT);
+        return;
     }
 
     mqtt_init(&client_pub, the_sockfd_pub, sendbuf_pub, sizeof(sendbuf_pub), recvbuf_pub, sizeof(recvbuf_pub), publish_callback_1);
