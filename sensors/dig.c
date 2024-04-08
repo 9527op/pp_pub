@@ -21,7 +21,7 @@ void init_dig(void)
 
     // input 16,17
     // 
-    bflb_gpio_init(gpio_dig, GPIO_PIN_16, GPIO_INPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
+    bflb_gpio_init(gpio_dig, GPIO_PIN_16, GPIO_INPUT | GPIO_PULLDOWN | GPIO_SMT_EN | GPIO_DRV_0);
 
     bflb_gpio_init(gpio_dig, GPIO_PIN_17, GPIO_INPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
 
@@ -36,11 +36,26 @@ void init_dig(void)
 // for IO16,IO17
 void read_dig(void)
 {
-    if(gpio_dig!=NULL)
+    if (gpio_dig != NULL)
     {
-        LOG_I("GPIO_PIN_16=%x\r\nGPIO_PIN_17=%x\r\n", bflb_gpio_read(gpio_dig, GPIO_PIN_16), bflb_gpio_read(gpio_dig, GPIO_PIN_17));
-        STORG_IO16RDig = bflb_gpio_read(gpio_dig, GPIO_PIN_16);
-        STORG_IO17RDig = bflb_gpio_read(gpio_dig, GPIO_PIN_17);
+        if (bflb_gpio_read(gpio_dig, GPIO_PIN_16))
+        {
+            STORG_IO16RDig = 1;
+        }
+        else
+        {
+            STORG_IO16RDig = 0;
+        }
+
+        if (bflb_gpio_read(gpio_dig, GPIO_PIN_17))
+        {
+            STORG_IO17RDig = 1;
+        }
+        else
+        {
+            STORG_IO17RDig = 0;
+        }
+        LOG_I("GPIO_PIN_16=%02x, GPIO_PIN_17=%02x\r\n", STORG_IO16RDig, STORG_IO17RDig);
     }
 }
 

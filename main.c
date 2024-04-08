@@ -51,7 +51,7 @@
 
 // 家具端设置为0,语音控制端设置为1
 // 最终影响sub_logic_func函数中是否逻辑处理，switch_device分支（家具端使用，非switch_device分支（语音控制端使用
-#define CONTROLLER 1
+#define CONTROLLER 0
 
 // live 0
 // room0 1
@@ -394,6 +394,12 @@ char* intToChar(uint32_t oval)
 
     LOG_I("intToChar oval:%d\r\n",oval);
 
+    // just 0
+    if (oval == 0)
+    {
+        rnval[0] = 48; //'0'
+        goto intToChar_end;
+    }
 
     while (oval % 10 != 0 || oval > 0)
     {
@@ -408,8 +414,11 @@ char* intToChar(uint32_t oval)
     {
         *(rnval + i) = *(nval + nvaln - i - 1);
     }
+    
+intToChar_end:
 
     free(nval);
+    nval = NULL;
 
     LOG_I("intToChar rnval:%s\r\n", rnval);
 
@@ -504,7 +513,7 @@ void mqttP_task(void* param)
 
         // dig_read
         // 
-        if (STORG_IO17RDig_old != STORG_IO17RDig && STORG_IO17RDig < 2)
+        if (STORG_IO17RDig_old != STORG_IO17RDig)
         {
             strcpy(tmp_pub_topic, correct_pub_topic);
             strcat(tmp_pub_topic, "/sensor0_IO17RDig");
@@ -517,7 +526,7 @@ void mqttP_task(void* param)
             free(val_ptr);
             val_ptr = NULL;
         }
-        if (STORG_IO16RDig_old != STORG_IO16RDig && STORG_IO16RDig < 2)
+        if (STORG_IO16RDig_old != STORG_IO16RDig)
         {
             strcpy(tmp_pub_topic, correct_pub_topic);
             strcat(tmp_pub_topic, "/sensor0_IO16RDig");
@@ -632,6 +641,8 @@ void dht11_task(void* param)
 
     while(1)
     {
+        STORG_temperature = 0xff;
+        STORG_humidity = 0xff;
 
         vTaskSuspendAll();
 
@@ -682,7 +693,7 @@ void digRead_task(void* param)
         //get IO16,IO17 data
         read_dig();
 
-        vTaskDelay(400 / portTICK_PERIOD_MS);
+        vTaskDelay(800 / portTICK_PERIOD_MS);
     }
 }
 
@@ -1005,14 +1016,14 @@ void create_server_task(void)
         // 
 
         // oled
-        xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        // xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
     }
     else
     {
         xTaskCreate(server_task, (char*)"fw", WIFI_HTTP_SERVER_STACK_SIZE, NULL, WIFI_HTTP_SERVERTASK_PRIORITY, &server_task_hd);
 
         // oled
-        xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        // xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
 
         // 数据读取显示
         // xTaskCreate(oledDisplay_test_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
@@ -1021,7 +1032,7 @@ void create_server_task(void)
 
     // 控制端e2prom数据读取
     // e2prom
-    xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
+    // xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
 
     // 下面默认能打开的是有关于传感器一类
 
@@ -1031,12 +1042,12 @@ void create_server_task(void)
     // adc
     // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
 
-    // dig_read
-    // xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
+    // dig_read 人体要4.5v以上
+    xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
 
 
     // mqtt sensors states pub for deives
-    // xTaskCreate(mqttP_task, (char*)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
+    xTaskCreate(mqttP_task, (char*)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
 
 
     // servo
@@ -1074,8 +1085,8 @@ int main(void)
     // need i2c 没有连接i2c设备，则设备阻塞
 	/*OLED初始化 和 e2prom msgs初始化*/
 
-	OLED_Init();
-	e2prom_i2cMsgs_init();
+	// OLED_Init();
+	// e2prom_i2cMsgs_init();
 
 
     // 
