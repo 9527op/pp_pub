@@ -48,9 +48,9 @@ make flash COMX=xxx ## xxx is your com name
     OLED_Init();
 	e2prom_i2cMsgs_init();
 打开create_server_task中相应任务，如
-    xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
-    xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
-    xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+    xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);  //从e2prom中读取数据
+    xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);  //视情况的屏幕显示
+    xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);   //视情况的屏幕显示
     视情况调整
 ```
 
@@ -62,10 +62,11 @@ make flash COMX=xxx ## xxx is your com name
     IN_WHERE 0
     IN_WHERE_STR "live"
 关闭main函数中
-    OLED_Init();
+    OLED_Init();    //有屏幕就打开
 	e2prom_i2cMsgs_init();
 打开create_server_task中相应任务，如
-    xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
-    xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
+    xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);  //设备状态切换
+    xTaskCreate(mqttP_task, (char*)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd); //传感器数据上传
+
     视情况调整
 ```

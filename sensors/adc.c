@@ -72,7 +72,7 @@ void start_adc(void)
         bflb_adc_parse_result(adc, &raw_data, &result, 1);
         
         // LOG_I("raw data:%08x\r\n", raw_data);
-        LOG_I("pos chan %d,%d mv \r\n", result.pos_chan, result.millivolt);
+        LOG_I("pos chan %d,%d mv (millivolt) \r\n", result.pos_chan, result.millivolt);
         // LOG_W("one channel is read over\r\n");
         
 
