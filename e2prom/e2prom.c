@@ -300,6 +300,7 @@ void e2prom_man_test(void)
 // page 10 0xA0
 void e2prom_read_0xA0(void)
 {
+    // 设置watch_dog的值，如果读取一致，则直接返回。
     uint8_t watch_dog_0xA0 = 0xdd;
 
     read_page(EEPROM_SELECT_PAGE10);
