@@ -79,7 +79,8 @@ void e2prom_i2cMsgs_init(void)
 void write_page(uint8_t page)
 {    
     e2prom_msgs[0].buffer = &page;
-    e2prom_msgs[1].buffer = e2prom_senData;    
+    e2prom_msgs[1].buffer = e2prom_senData; 
+    e2prom_msgs[1].length = EEPROM_DATA_BUF_LEN;
     e2prom_msgs[1].flags = 0;
 
     bflb_i2c_transfer(i2c1, e2prom_msgs, 2);
@@ -92,6 +93,7 @@ void read_page(uint8_t page)
     LOG_I("in read_page\r\n");
     e2prom_msgs[0].buffer = &page;
     e2prom_msgs[1].buffer = e2prom_recData;
+    e2prom_msgs[1].length = EEPROM_DATA_BUF_LEN;
     e2prom_msgs[1].flags = I2C_M_READ;
     
     bflb_i2c_transfer(i2c1, e2prom_msgs, 2);
@@ -99,26 +101,26 @@ void read_page(uint8_t page)
 }
 
 
-uint8_t read_byte(uint8_t* location)
+uint8_t read_byte(uint8_t location)
 {
-    uint8_t* temp;
-    e2prom_msgs[0].buffer = location;
+    uint8_t temp;
+    e2prom_msgs[0].buffer = &location;
     // 
-    e2prom_msgs[1].buffer = temp;
+    e2prom_msgs[1].buffer = &temp;
     e2prom_msgs[1].length = 1;
     e2prom_msgs[1].flags = I2C_M_READ;
     
     bflb_i2c_transfer(i2c1, e2prom_msgs, 2);
     vTaskDelay(10/portTICK_PERIOD_MS);
 
-    return *temp;
+    return temp;
 }
 
-void write_byte(uint8_t* val, uint8_t* location)
+void write_byte(uint8_t val, uint8_t location)
 {
-    e2prom_msgs[0].buffer = location;
+    e2prom_msgs[0].buffer = &location;
     // 
-    e2prom_msgs[1].buffer = val;
+    e2prom_msgs[1].buffer = &val;
     e2prom_msgs[1].length = 1;
     e2prom_msgs[1].flags = 0;
 
@@ -298,6 +300,8 @@ void e2prom_man_test(void)
 // page 10 0xA0
 void e2prom_read_0xA0(void)
 {
+    uint8_t watch_dog_0xA0 = 0xdd;
+
     read_page(EEPROM_SELECT_PAGE10);
     // LOG_I("page 0xA0 readed\r\n");
 
@@ -306,44 +310,41 @@ void e2prom_read_0xA0(void)
     //     LOG_W("page10 e2prom_recData[%d]:%02x\r\n",i,e2prom_recData[i]);
     // }
 
-    if(e2prom_recData[0]==0xff)
+    if (e2prom_recData[0] == watch_dog_0xA0)
     {
-        LOG_W("e2prom_recData[0]:%x\r\n", e2prom_recData[0]);
+        LOG_W("WARNNING NO PUB_e2prom_recData[0]:%x\r\n", e2prom_recData[0]);
         return;
     }
 
     char correct_pub_topic[128];
     char temp_pub_topic[128];
-    memset(correct_pub_topic,'\0',sizeof(correct_pub_topic)/sizeof(correct_pub_topic[0]));
-    memset(correct_pub_topic,'\0',sizeof(temp_pub_topic)/sizeof(temp_pub_topic[0]));
+    memset(correct_pub_topic, '\0', sizeof(correct_pub_topic) / sizeof(correct_pub_topic[0]));
+    memset(correct_pub_topic, '\0', sizeof(temp_pub_topic) / sizeof(temp_pub_topic[0]));
 
-    strcpy(correct_pub_topic,LEAGAL_PUB_TOPIC_HEAD);
-    strcat(correct_pub_topic,"/");
-    strcat(correct_pub_topic,LEAGAL_PUB_TOPIC_USER);
+    strcpy(correct_pub_topic, LEAGAL_PUB_TOPIC_HEAD);
+    strcat(correct_pub_topic, "/");
+    strcat(correct_pub_topic, LEAGAL_PUB_TOPIC_USER);
 
     // ------------------------------------------------------
     // rooms:"theRoom","room0","live","dropback"
-    // 
+    //
     // 0xA1    风扇
     // 0xA2    卧室灯
     // 0xA3    客厅灯
     // 0xA4    窗帘
 
-    LOG_W("STORG_fan0State:%02x\r\n",STORG_fan0State);
-    LOG_W("STORG_light0State:%02x\r\n",STORG_light0State);
-    LOG_W("STORG_light1State:%02x\r\n",STORG_light1State);
-    LOG_W("STORG_servo0State:%02x\r\n",STORG_servo0State);
+    LOG_W("STORG_fan0State:%02x\r\n", STORG_fan0State);
+    LOG_W("STORG_light0State:%02x\r\n", STORG_light0State);
+    LOG_W("STORG_light1State:%02x\r\n", STORG_light1State);
+    LOG_W("STORG_servo0State:%02x\r\n", STORG_servo0State);
 
-
-
-    if(e2prom_recData[1]==0 || e2prom_recData[1]==1)
+    if (e2prom_recData[1] == 0 || e2prom_recData[1] == 1)
     {
-        if(wifi_state)
+        if (wifi_state)
         {
-            STORG_fan0State=e2prom_recData[1];
+            STORG_fan0State = e2prom_recData[1];
             strcpy(temp_pub_topic, correct_pub_topic);
-            strcat(temp_pub_topic,"/live/fan0");
-            
+            strcat(temp_pub_topic, "/live/fan0");
 
             if (STORG_fan0State)
             {
@@ -356,13 +357,13 @@ void e2prom_read_0xA0(void)
         }
     }
 
-    if(e2prom_recData[2]==0 || e2prom_recData[2]==1)
+    if (e2prom_recData[2] == 0 || e2prom_recData[2] == 1)
     {
-        if(wifi_state)
+        if (wifi_state)
         {
-            STORG_light0State=e2prom_recData[2];
+            STORG_light0State = e2prom_recData[2];
             strcpy(temp_pub_topic, correct_pub_topic);
-            strcat(temp_pub_topic,"/room0/light0");
+            strcat(temp_pub_topic, "/room0/light0");
 
             if (STORG_light0State)
             {
@@ -375,14 +376,13 @@ void e2prom_read_0xA0(void)
         }
     }
 
-    if(e2prom_recData[3]==0 || e2prom_recData[3]==1)
+    if (e2prom_recData[3] == 0 || e2prom_recData[3] == 1)
     {
-        if(wifi_state)
+        if (wifi_state)
         {
-            STORG_light1State=e2prom_recData[3];
+            STORG_light1State = e2prom_recData[3];
             strcpy(temp_pub_topic, correct_pub_topic);
-            strcat(temp_pub_topic,"/live/light1");
-            
+            strcat(temp_pub_topic, "/live/light1");
 
             if (STORG_light1State)
             {
@@ -395,14 +395,13 @@ void e2prom_read_0xA0(void)
         }
     }
 
-    if(e2prom_recData[4]==0 || e2prom_recData[4]==1)
+    if (e2prom_recData[4] == 0 || e2prom_recData[4] == 1)
     {
-        if(wifi_state)
+        if (wifi_state)
         {
-            STORG_servo0State=e2prom_recData[4];
+            STORG_servo0State = e2prom_recData[4];
             strcpy(temp_pub_topic, correct_pub_topic);
-            strcat(temp_pub_topic,"/room0/servo0");
-
+            strcat(temp_pub_topic, "/room0/servo0");
 
             if (STORG_servo0State)
             {
@@ -415,11 +414,9 @@ void e2prom_read_0xA0(void)
         }
     }
 
-
-
     // set the 0xA0 to 0xff
-    write_byte(0xff,0xA0);
-    LOG_W("set 0xA0 to 0xff\r\n");
+    write_byte(watch_dog_0xA0, 0xA0);
+    LOG_W("set 0xA0 to %02x\r\n",watch_dog_0xA0);
 }
 
 
@@ -452,7 +449,26 @@ void e2prom_write_0xB0(void)
 
 
 
+// --------------------------------------------------------------------------
+// -------------------------debugger-----------------------------------------
 
+#ifdef CONFIG_SHELL
+#include <shell.h>
+
+void eat_dag(void)
+{
+    uint8_t watch_dog_0xA0 = 0xbb;
+    uint8_t dog_0xA0 = 0xA0;
+
+    write_byte(watch_dog_0xA0, dog_0xA0);
+    LOG_W("set 0xA0 to %02x\r\n", watch_dog_0xA0);
+}
+
+
+
+SHELL_CMD_EXPORT_ALIAS(eat_dag,eat_dag,eat dag);
+
+#endif
 
 
 

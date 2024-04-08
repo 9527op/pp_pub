@@ -51,7 +51,7 @@
 
 // 家具端设置为0,语音控制端设置为1
 // 最终影响sub_logic_func函数中是否逻辑处理，switch_device分支（家具端使用，非switch_device分支（语音控制端使用
-#define CONTROLLER 0
+#define CONTROLLER 1
 
 // live 0
 // room0 1
@@ -366,10 +366,10 @@ void sub_logic_func(char* topic_key,char* topic_val)
 
 sub_logic_func_end:
 
-    LOG_W("STORG_fan0State:%02x\r\n",STORG_fan0State);
-    LOG_W("STORG_light0State:%02x\r\n",STORG_light0State);
-    LOG_W("STORG_light1State:%02x\r\n",STORG_light1State);
-    LOG_W("STORG_servo0State:%02x\r\n",STORG_servo0State);
+    LOG_W("sub_logic_func STORG_fan0State:%02x\r\n",STORG_fan0State);
+    LOG_W("sub_logic_func STORG_light0State:%02x\r\n",STORG_light0State);
+    LOG_W("sub_logic_func STORG_light1State:%02x\r\n",STORG_light1State);
+    LOG_W("sub_logic_func STORG_servo0State:%02x\r\n",STORG_servo0State);
 
 
     LOG_I("--------------------------------sub_logic_func end---------------------------------------\r\n\r\n");
@@ -1020,23 +1020,25 @@ void create_server_task(void)
         // xTaskCreate(oledDisplay_test_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
     }
     
+
+    // 控制端e2prom数据读取
     // e2prom
-    // xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
+    xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
 
     // 下面默认能打开的是有关于传感器一类
 
     // dht11
-    xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
+    // xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
 
     // adc
-    xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
+    // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
 
     // dig_read
-    xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
+    // xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
 
 
     // mqtt sensors states pub for deives
-    xTaskCreate(mqttP_task, (char*)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
+    // xTaskCreate(mqttP_task, (char*)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
 
 
     // servo
@@ -1045,7 +1047,7 @@ void create_server_task(void)
     // ----------------------------------------------------
     // ----------------------------------------------------
     // switch devices
-    xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
+    // xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
 
 
     // test
@@ -1075,7 +1077,7 @@ int main(void)
 	/*OLED初始化 和 e2prom msgs初始化*/
 
 	OLED_Init();
-	// e2prom_i2cMsgs_init();
+	e2prom_i2cMsgs_init();
 
 
     // 
