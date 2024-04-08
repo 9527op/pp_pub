@@ -90,7 +90,7 @@ void write_page(uint8_t page)
 // 指定写读取页的位置，数据存入e2prom_recData
 void read_page(uint8_t page)
 {
-    LOG_I("in read_page\r\n");
+    // LOG_I("in read_page\r\n");
     e2prom_msgs[0].buffer = &page;
     e2prom_msgs[1].buffer = e2prom_recData;
     e2prom_msgs[1].length = EEPROM_DATA_BUF_LEN;
@@ -424,26 +424,32 @@ void e2prom_read_0xA0(void)
 // page 11 0xB0
 void e2prom_write_0xB0(void)
 {
-    write_page(EEPROM_SELECT_PAGE11);
 
     for(uint8_t i=0;i<16;i++)
     {
         e2prom_senData[i]=0xFF;
     }
 
-    if(STORG_temperature!=0&&STORG_temperature<120)
+    if(STORG_temperature!=0&&STORG_temperature<220)
     {
         e2prom_senData[1]=STORG_temperature;
     }
 
-    if(STORG_humidity!=0&&STORG_humidity<120)
+    if(STORG_humidity!=0&&STORG_humidity<220)
     {
         e2prom_senData[2]=STORG_humidity;
     }
 
     // ----------------------------------
 
-    write_page(EEPROM_SELECT_PAGE11);
+    for(uint8_t i=0;i<16;i++)
+    {
+        if (e2prom_senData[i] != 0xFF)
+        {
+            write_page(EEPROM_SELECT_PAGE11);
+            break;
+        }
+    }
 
 }
 

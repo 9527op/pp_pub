@@ -599,9 +599,7 @@ void e2prom_task(void* param)
         e2prom_read_0xA0();
         e2prom_write_0xB0();
 
-
-
-        vTaskDelay(600/portTICK_PERIOD_MS);
+        vTaskDelay(100/portTICK_PERIOD_MS);
     }
 }
 
