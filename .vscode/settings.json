@@ -7,7 +7,8 @@
         "wifi_mgmr.h": "c",
         "bflb_l1c.h": "c",
         "bflb_mtimer.h": "c",
-        "bflb_uart.h": "c"
+        "bflb_uart.h": "c",
+        "bflb_gpio.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

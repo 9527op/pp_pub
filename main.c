@@ -93,6 +93,11 @@ volatile uint8_t STORG_humidity = 0;          //湿度      ------------------>h
 volatile uint8_t STORG_IO16RDig = 0x1f;
 volatile uint8_t STORG_IO17RDig = 0x1f;
 
+// fingerprint
+volatile uint8_t TORegister = 0;
+volatile uint16_t fingerID_NOW = 0;
+
+
 
 
 // -------------------------------------------------------------------------------
@@ -111,6 +116,8 @@ volatile uint8_t STORG_IO17RDig = 0x1f;
 // #include "mqtt_p.h"
 // #include "mqtt_s.h"
 #include "OLED.h"       //oldeDisplay_task
+
+#include "fpm383.h"
 
 
 
@@ -205,6 +212,9 @@ void i2c0_init(void)
 #define SWITCH_DEVICES_STACK_SIZE  (1024*2)
 #define SWITCH_DEVICES_PRIORITY (4)
 // 
+#define FINGERPRINT_STACK_SIZE  (1024)
+#define FINGERPRINT_PRIORITY (4)
+// 
 #define TEST_STACK_SIZE  (1024)
 #define TEST_PRIORITY (2)
 
@@ -221,6 +231,7 @@ static TaskHandle_t dht11_task_hd;
 static TaskHandle_t adc_task_hd;
 static TaskHandle_t digRead_task_hd;
 static TaskHandle_t switch_devices_task_hd;
+static TaskHandle_t fingerprint_task_hd;
 static TaskHandle_t test_task_hd;
 
 void* MuxSem_Handle = NULL;
@@ -773,6 +784,47 @@ void switch_devices_task(void* param)
 }
 
 
+// fingerprint
+void fingerprint_task(void* param)
+{
+    // 初始化FPM383C指纹模块
+    FPM383C_Init();
+
+    // 清空指纹库
+    // FPM383C_Empty(2000);
+
+    // 随机id   WARNNING:未有保存在flash
+    srand((unsigned int)time(NULL));
+    fingerID_NOW = rand() % 59 + 1;
+
+    while (1)
+    {
+
+        LOG_I("TORegister is:%d\r\n", TORegister);
+
+        if (TORegister)
+        {
+            // 开启注册指纹，指纹ID：0—59， 超时时间尽量在 10秒左右，需要录入四次
+            FPM383C_Enroll(fingerID_NOW, 10000);
+            // FPM383C_Enroll_fmanual(10000);
+
+            // 休息600毫秒进行下次注册
+            bflb_mtimer_delay_ms(600);
+            // 模块休眠一下
+            FPM383C_Sleep();
+            TORegister = 0;
+        }
+        else
+        {
+            // 开启自动识别
+            FPM383C_Identify();
+        }
+
+        fingerID_NOW += 1;
+        vTaskDelay(200/portTICK_PERIOD_MS);
+    }
+}
+
 
 void test_task(void* param)
 {
@@ -1057,6 +1109,10 @@ void create_server_task(void)
     // ----------------------------------------------------
     // switch devices
     // xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
+
+
+    // fingerprint  WARNNING:已知接口有冲突
+    // xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_PRIORITY, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
 
 
     // test

@@ -16,6 +16,9 @@ sdk_add_include_directories(mqtts)
 sdk_add_include_directories(oled)
 sdk_add_include_directories(e2prom)
 
+sdk_add_include_directories(fpm383)
+
+
 
 
 
@@ -38,7 +41,8 @@ target_sources(app PRIVATE
                    sensors/adc.c
                    sensors/dht11.c
                    sensors/dig.c
-                   light/light.c)
+                   light/light.c
+                   fpm383/fpm383.c)
 
 
 
