@@ -6,8 +6,22 @@
 #include "bflb_uart.h"
 #include "bflb_gpio.h"
 
+#include "shell.h"
+
 #define DBG_TAG "FPM383C"
 #include "log.h"
+
+// --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
+
+extern uint8_t TORegister;
+extern uint16_t fingerID_END;
+extern uint16_t fingerID_Unlock;
+
+// --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
 
 // 控制模块LED灯颜色
 uint8_t PS_BlueLEDBuf[16] = {0xEF, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x07, 0x3C, 0x03, 0x01, 0x01, 0x00, 0x00, 0x49};
@@ -244,13 +258,17 @@ void FPM383C_Identify(void)
             if (FPM383C_Search(2000) == 0x00)
             {
                 score = (int)((USART_ReceiveBuf[10] << 8) + USART_ReceiveBuf[11]);
-                LOG_E("解锁成功 指纹ID：%d\r\n", (int)score);
+                fingerID_Unlock = score;
+                LOG_E("解锁成功 指纹ID：%d\r\n", fingerID_Unlock);
                 FPM383C_ControlLED(PS_GreenLEDBuf, 1000);
+                
 
-                bflb_gpio_init(led, GPIO_PIN_14, GPIO_OUTPUT);
-                bflb_gpio_set(led, GPIO_PIN_14);
-                bflb_mtimer_delay_ms(1000);
-                bflb_gpio_reset(led, GPIO_PIN_14);
+                // 控制板上led灯
+                // bflb_gpio_init(led, GPIO_PIN_14, GPIO_OUTPUT);
+                // bflb_gpio_set(led, GPIO_PIN_14);
+                // bflb_mtimer_delay_ms(1000);
+                // bflb_gpio_reset(led, GPIO_PIN_14);
+
                 // 重置接收数据缓存
                 memset(USART_ReceiveBuf, 0xFF, sizeof(USART_ReceiveBuf));
                 return;
@@ -258,10 +276,15 @@ void FPM383C_Identify(void)
             else
             {
                 LOG_E("解锁失败\r\n");
-                bflb_gpio_init(led, GPIO_PIN_12, GPIO_OUTPUT);
-                bflb_gpio_set(led, GPIO_PIN_12);
-                bflb_mtimer_delay_ms(1000);
-                bflb_gpio_reset(led, GPIO_PIN_12);
+
+                FPM383C_ControlLED(PS_RedLEDBuf, 1000);
+
+
+                // bflb_gpio_init(led, GPIO_PIN_12, GPIO_OUTPUT);
+                // bflb_gpio_set(led, GPIO_PIN_12);
+                // bflb_mtimer_delay_ms(1000);
+                // bflb_gpio_reset(led, GPIO_PIN_12);
+
                 // 重置接收数据缓存
                 memset(USART_ReceiveBuf, 0xFF, sizeof(USART_ReceiveBuf));
                 return;
@@ -306,3 +329,28 @@ void FPM383C_Enroll(uint16_t pageID, uint16_t timeout)
     // 亮红灯2秒
     FPM383C_ControlLED(PS_RedLEDBuf, 2000);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef CONFIG_SHELL
+#include <shell.h>
+
+
+void register_fingerPrint(void)
+{
+    TORegister = 1;
+}
+
+SHELL_CMD_EXPORT_ALIAS(register_fingerPrint,register_fingerPrint,toRegister fingerPrint);
+
+#endif

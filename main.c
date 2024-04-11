@@ -95,7 +95,9 @@ volatile uint8_t STORG_IO17RDig = 0x1f;
 
 // fingerprint
 volatile uint8_t TORegister = 0;
-volatile uint16_t fingerID_NOW = 0;
+volatile uint16_t fingerID_END = 0;
+volatile uint16_t fingerID_Unlock = 0xff;
+const char* fingerID_END_STR = "fingerID_END";
 
 
 
@@ -787,6 +789,7 @@ void switch_devices_task(void* param)
 // fingerprint
 void fingerprint_task(void* param)
 {
+    
     // 初始化FPM383C指纹模块
     FPM383C_Init();
 
@@ -795,7 +798,10 @@ void fingerprint_task(void* param)
 
     // 随机id   WARNNING:未有保存在flash
     srand((unsigned int)time(NULL));
-    fingerID_NOW = rand() % 59 + 1;
+    fingerID_END = rand() % 59 + 1;
+
+    // char *fingerID_END_ptr = flash_get_data(fingerID_END_STR, 5);
+    // uint16_t
 
     while (1)
     {
@@ -804,24 +810,33 @@ void fingerprint_task(void* param)
 
         if (TORegister)
         {
+            fingerID_END += 1;
+
             // 开启注册指纹，指纹ID：0—59， 超时时间尽量在 10秒左右，需要录入四次
-            FPM383C_Enroll(fingerID_NOW, 10000);
+            FPM383C_Enroll(fingerID_END, 10000);
             // FPM383C_Enroll_fmanual(10000);
 
             // 休息600毫秒进行下次注册
             bflb_mtimer_delay_ms(600);
             // 模块休眠一下
             FPM383C_Sleep();
+
             TORegister = 0;
         }
         else
         {
             // 开启自动识别
             FPM383C_Identify();
+
+            if(fingerID_Unlock!=0xff)
+            {
+                vTaskDelay(1500 / portTICK_PERIOD_MS);
+                fingerID_Unlock = 0xff;
+            }
         }
 
-        fingerID_NOW += 1;
-        vTaskDelay(200/portTICK_PERIOD_MS);
+        
+        vTaskDelay(400/portTICK_PERIOD_MS);
     }
 }
 
@@ -1058,7 +1073,7 @@ void create_server_task(void)
         xTaskCreate(toLink_task, (char*)"toLink_queue", TOLINK_STACK_SIZE, NULL, TOLINK_PRIORITY, &toLink_task_hd);
         
         // mqtt subcriber
-        xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
+        // xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
 
 
         // 
@@ -1095,11 +1110,11 @@ void create_server_task(void)
     // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
 
     // dig_read 人体要4.5v以上
-    xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
+    // xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
 
 
     // mqtt sensors states pub for deives
-    xTaskCreate(mqttP_task, (char*)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
+    // xTaskCreate(mqttP_task, (char*)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
 
 
     // servo
@@ -1111,8 +1126,8 @@ void create_server_task(void)
     // xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
 
 
-    // fingerprint  WARNNING:已知接口有冲突
-    // xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_PRIORITY, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
+    // fingerprint  WARNNING:已知接口有冲突（探明IO23:dht11 ,IO24:sg90      这两fingerprint都要用
+    xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
 
 
     // test
