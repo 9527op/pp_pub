@@ -14,9 +14,12 @@
 // --------------------------------------------------------------------------
 // --------------------------------------------------------------------------
 
-extern uint8_t TORegister;
+extern uint8_t TOActionFingerprint;
 extern uint16_t fingerID_END;
 extern uint16_t fingerID_Unlock;
+#define fingerID_END_STR "fingerID_END"                 //保证和main.c文件中的同名预定义的值相同
+
+
 
 // --------------------------------------------------------------------------
 // --------------------------------------------------------------------------
@@ -91,7 +94,7 @@ void uart_isr(int irq, void *arg)
     }
 }
 
-/// @brief 初始化FPM383C指纹模块		IO23:UART_TX  IO24:UART_RX
+/// @brief 初始化FPM383C指纹模块
 void FPM383C_Init()
 {
     // 声明 gpio句柄
@@ -259,9 +262,9 @@ void FPM383C_Identify(void)
             {
                 score = (int)((USART_ReceiveBuf[10] << 8) + USART_ReceiveBuf[11]);
                 fingerID_Unlock = score;
-                LOG_E("解锁成功 指纹ID：%d\r\n", fingerID_Unlock);
+                LOG_E("识别成功 指纹ID：%d\r\n", fingerID_Unlock);
+
                 FPM383C_ControlLED(PS_GreenLEDBuf, 1000);
-                
 
                 // 控制板上led灯
                 // bflb_gpio_init(led, GPIO_PIN_14, GPIO_OUTPUT);
@@ -275,10 +278,9 @@ void FPM383C_Identify(void)
             }
             else
             {
-                LOG_E("解锁失败\r\n");
+                LOG_E("识别失败\r\n");
 
                 FPM383C_ControlLED(PS_RedLEDBuf, 1000);
-
 
                 // bflb_gpio_init(led, GPIO_PIN_12, GPIO_OUTPUT);
                 // bflb_gpio_set(led, GPIO_PIN_12);
@@ -298,6 +300,12 @@ void FPM383C_Identify(void)
 /// @param timeout 设置注册指纹超时时间，因为需要按压四次手指，建议大于10000（即10s）
 void FPM383C_Enroll(uint16_t pageID, uint16_t timeout)
 {
+    char fingerID_END_ptr[5];
+    char fingerID_END_ptr_R[5];
+    memset(fingerID_END_ptr, 0, 5);
+    memset(fingerID_END_ptr_R, 0, 5);
+
+
     LOG_E("注册指纹ID: %d\r\n", pageID);
     // uint8_t PS_AutoEnrollBuf[17] = {0xEF,0x01,0xFF,0xFF,0xFF,0xFF,0x01,0x00,0x08,0x31,'\0','\0',0x04,0x00,0x16,'\0','\0'};
     PS_AutoEnrollBuf[10] = (pageID >> 8);
@@ -305,6 +313,9 @@ void FPM383C_Enroll(uint16_t pageID, uint16_t timeout)
     PS_AutoEnrollBuf[15] = (0x54 + PS_AutoEnrollBuf[10] + PS_AutoEnrollBuf[11]) >> 8;
     PS_AutoEnrollBuf[16] = (0x54 + PS_AutoEnrollBuf[10] + PS_AutoEnrollBuf[11]);
     FPM383C_SendData(17, PS_AutoEnrollBuf);
+
+
+
     while (!USART2_STA && (--timeout))
     {
         bflb_mtimer_delay_ms(1);
@@ -316,6 +327,35 @@ void FPM383C_Enroll(uint16_t pageID, uint16_t timeout)
         FPM383C_ControlLED(PS_GreenLEDBuf, 2000);
         // 重置接收数据缓存
         memset(USART_ReceiveBuf, 0xFF, sizeof(USART_ReceiveBuf));
+
+
+        // ------------------------
+        // flash_erase_set
+        // pageID
+
+        // intToStr
+        for (int i = 0; i < 5; i++)
+        {
+            if (pageID == 0)
+            {
+                if (i == 0)
+                {
+                    fingerID_END_ptr[i] = '0';
+                }
+                for (int j = 0; j < i; j++)
+                {
+                    fingerID_END_ptr[j] = fingerID_END_ptr_R[i - 1 - j];
+                }
+
+                break;
+            }
+            fingerID_END_ptr_R[i] = (pageID % 10) + 48;
+            pageID /= 10;
+        }
+
+        LOG_D("fingerID_END_ptr:%d,fingerID_END_ptr_R:%d\r\n", fingerID_END_ptr, fingerID_END_ptr_R);
+        flash_erase_set(fingerID_END_STR, fingerID_END_ptr);
+
         return;
     }
     else if (timeout == 0)
@@ -325,9 +365,9 @@ void FPM383C_Enroll(uint16_t pageID, uint16_t timeout)
         bflb_mtimer_delay_ms(50);
         // 重置接收数据缓存
         memset(USART_ReceiveBuf, 0xFF, sizeof(USART_ReceiveBuf));
+        // 亮红灯2秒
+        FPM383C_ControlLED(PS_RedLEDBuf, 2000);
     }
-    // 亮红灯2秒
-    FPM383C_ControlLED(PS_RedLEDBuf, 2000);
 }
 
 
@@ -348,9 +388,22 @@ void FPM383C_Enroll(uint16_t pageID, uint16_t timeout)
 
 void register_fingerPrint(void)
 {
-    TORegister = 1;
+    TOActionFingerprint = 1;
 }
 
-SHELL_CMD_EXPORT_ALIAS(register_fingerPrint,register_fingerPrint,toRegister fingerPrint);
+void delete_fingerPrint(void)
+{
+    TOActionFingerprint = 2;
+}
+
+void empty_fingerPrint(void)
+{
+    FPM383C_Empty(2000);
+}
+
+SHELL_CMD_EXPORT_ALIAS(register_fingerPrint,register_fingerPrint,toRegisterAfingerPrint);
+SHELL_CMD_EXPORT_ALIAS(delete_fingerPrint,delete_fingerPrint,toDeleteAfingerPrint);
+
+SHELL_CMD_EXPORT_ALIAS(empty_fingerPrint,empty_fingerPrint,toEmptyAllfingerPrint);
 
 #endif

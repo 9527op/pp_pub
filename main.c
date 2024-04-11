@@ -94,10 +94,10 @@ volatile uint8_t STORG_IO16RDig = 0x1f;
 volatile uint8_t STORG_IO17RDig = 0x1f;
 
 // fingerprint
-volatile uint8_t TORegister = 0;
+volatile uint8_t TOActionFingerprint = 0;
 volatile uint16_t fingerID_END = 0;
 volatile uint16_t fingerID_Unlock = 0xff;
-const char* fingerID_END_STR = "fingerID_END";
+#define fingerID_END_STR "fingerID_END"
 
 
 
@@ -214,7 +214,7 @@ void i2c0_init(void)
 #define SWITCH_DEVICES_STACK_SIZE  (1024*2)
 #define SWITCH_DEVICES_PRIORITY (4)
 // 
-#define FINGERPRINT_STACK_SIZE  (1024)
+#define FINGERPRINT_STACK_SIZE  (1024*2)
 #define FINGERPRINT_PRIORITY (4)
 // 
 #define TEST_STACK_SIZE  (1024)
@@ -789,6 +789,8 @@ void switch_devices_task(void* param)
 // fingerprint
 void fingerprint_task(void* param)
 {
+
+    uint8_t delete_resultCode = 0;
     
     // 初始化FPM383C指纹模块
     FPM383C_Init();
@@ -800,16 +802,36 @@ void fingerprint_task(void* param)
     srand((unsigned int)time(NULL));
     fingerID_END = rand() % 59 + 1;
 
-    // char *fingerID_END_ptr = flash_get_data(fingerID_END_STR, 5);
+    char *fingerID_END_ptr = flash_get_data(fingerID_END_STR, 5);
+    if (strlen(fingerID_END_ptr) > 0 && fingerID_END_ptr[0] != '\0')
+    {
+        fingerID_END=0;
+        for (int i=0;i<5;i++)
+        {
+            if (fingerID_END_ptr[i] == '\0')
+            {
+                break;
+            }
+
+            if(i!=0)
+            {
+                fingerID_END *= 10;
+            }
+            fingerID_END += (uint8_t)(fingerID_END_ptr[i] - 48); //"0" 48
+        }
+    }
+    LOG_I("fingerID_END is:%d\r\n", fingerID_END);
     // uint16_t
 
     while (1)
     {
 
-        LOG_I("TORegister is:%d\r\n", TORegister);
+        LOG_I("TOActionFingerprint is:%d\r\n", TOActionFingerprint);
 
-        if (TORegister)
+        if (TOActionFingerprint == 1)
         {
+            // 注册分支
+            // 
             fingerID_END += 1;
 
             // 开启注册指纹，指纹ID：0—59， 超时时间尽量在 10秒左右，需要录入四次
@@ -821,22 +843,32 @@ void fingerprint_task(void* param)
             // 模块休眠一下
             FPM383C_Sleep();
 
-            TORegister = 0;
+            TOActionFingerprint = 0;
         }
         else
         {
+            // 识别分支 & TOActionFingerprint==2 时 删除该指纹信息
+            //
+
             // 开启自动识别
             FPM383C_Identify();
 
             if(fingerID_Unlock!=0xff)
             {
-                vTaskDelay(1500 / portTICK_PERIOD_MS);
+
+                if (TOActionFingerprint == 2)
+                {
+                    delete_resultCode = FPM383C_Delete(fingerID_Unlock, 1200);
+                    LOG_W("删除指纹确认码：%02x\r\n", delete_resultCode);
+                }
+
                 fingerID_Unlock = 0xff;
+                // vTaskDelay(800 / portTICK_PERIOD_MS);
+                // continue;
             }
         }
 
-        
-        vTaskDelay(400/portTICK_PERIOD_MS);
+        vTaskDelay(800/portTICK_PERIOD_MS);
     }
 }
 
@@ -1127,6 +1159,7 @@ void create_server_task(void)
 
 
     // fingerprint  WARNNING:已知接口有冲突（探明IO23:dht11 ,IO24:sg90      这两fingerprint都要用
+    // 
     xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
 
 

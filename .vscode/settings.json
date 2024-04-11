@@ -8,7 +8,20 @@
         "bflb_l1c.h": "c",
         "bflb_mtimer.h": "c",
         "bflb_uart.h": "c",
-        "bflb_gpio.h": "c"
+        "bflb_gpio.h": "c",
+        "array": "c",
+        "chrono": "c",
+        "iterator": "c",
+        "list": "c",
+        "vector": "c",
+        "xhash": "c",
+        "xtree": "c",
+        "format": "c",
+        "forward_list": "c",
+        "initializer_list": "c",
+        "xiosbase": "c",
+        "xstring": "c",
+        "xutility": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
