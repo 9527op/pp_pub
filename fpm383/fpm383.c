@@ -115,8 +115,8 @@ void FPM383C_Init()
     fpm383c_uart = bflb_device_get_by_name("uart1");
 
     // 将GPIO_23和GPIO_24设置为TX和RX
-    bflb_gpio_uart_init(gpio, GPIO_PIN_23, GPIO_UART_FUNC_UART1_TX);
-    bflb_gpio_uart_init(gpio, GPIO_PIN_24, GPIO_UART_FUNC_UART1_RX);
+    bflb_gpio_uart_init(gpio, GPIO_PIN_26, GPIO_UART_FUNC_UART1_TX);
+    bflb_gpio_uart_init(gpio, GPIO_PIN_28, GPIO_UART_FUNC_UART1_RX);
 
     bflb_uart_init(fpm383c_uart, &cfg);
 
@@ -135,7 +135,7 @@ void FPM383C_Init()
 /// @param FPM383C_DataBuf 需要发送的功能数组
 void FPM383C_SendData(int length, uint8_t FPM383C_DataBuf[])
 {
-    LOG_I("FPM383C_DataBuf[0]:%02x\r\n", FPM383C_DataBuf[0]);
+    // LOG_I("FPM383C_DataBuf[0]:%02x\r\n", FPM383C_DataBuf[0]);
     for (int i = 0; i < length; i++)
     {
         bflb_uart_put(fpm383c_uart, (uint8_t *)&FPM383C_DataBuf[i], 1);
@@ -330,6 +330,8 @@ void FPM383C_Enroll(uint16_t pageID, uint16_t timeout)
 
 
         // ------------------------
+        fingerID_END += 1;
+        // ------------------------
         // flash_erase_set
         // pageID
 
@@ -399,6 +401,11 @@ void delete_fingerPrint(void)
 void empty_fingerPrint(void)
 {
     FPM383C_Empty(2000);
+    flash_erase_set(fingerID_END_STR, "");
+    fingerID_END = 0;
+    LOG_I("empty data of fingerprint\r\n");
+    // LOG_I("fingerID_END is:%d\r\n", fingerID_END);
+    // LOG_I("fingerID_END_STR len is:%d\r\n", strlen(flash_get_data(fingerID_END_STR, 5)));
 }
 
 SHELL_CMD_EXPORT_ALIAS(register_fingerPrint,register_fingerPrint,toRegisterAfingerPrint);

@@ -94,6 +94,7 @@ volatile uint8_t STORG_IO16RDig = 0x1f;
 volatile uint8_t STORG_IO17RDig = 0x1f;
 
 // fingerprint
+volatile uint8_t TOpenFingerprint = 0;
 volatile uint8_t TOActionFingerprint = 0;
 volatile uint16_t fingerID_END = 0;
 volatile uint16_t fingerID_Unlock = 0xff;
@@ -799,8 +800,9 @@ void fingerprint_task(void* param)
     // FPM383C_Empty(2000);
 
     // 随机id   WARNNING:未有保存在flash
-    srand((unsigned int)time(NULL));
-    fingerID_END = rand() % 59 + 1;
+    // srand((unsigned int)time(NULL));
+    // fingerID_END = rand() % 59 + 1;
+    // 不随机，保持ID为0
 
     char *fingerID_END_ptr = flash_get_data(fingerID_END_STR, 5);
     if (strlen(fingerID_END_ptr) > 0 && fingerID_END_ptr[0] != '\0')
@@ -831,11 +833,12 @@ void fingerprint_task(void* param)
         if (TOActionFingerprint == 1)
         {
             // 注册分支
+            // 注册ID为：fingerID_END + 1
             // 
-            fingerID_END += 1;
+            
 
             // 开启注册指纹，指纹ID：0—59， 超时时间尽量在 10秒左右，需要录入四次
-            FPM383C_Enroll(fingerID_END, 10000);
+            FPM383C_Enroll(fingerID_END + 1, 20000);
             // FPM383C_Enroll_fmanual(10000);
 
             // 休息600毫秒进行下次注册
@@ -1159,6 +1162,7 @@ void create_server_task(void)
 
 
     // fingerprint  WARNNING:已知接口有冲突（探明IO23:dht11 ,IO24:sg90      这两fingerprint都要用
+    // fingerprint  修改为：IO26:TX ,IO28:RX
     // 
     xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
 
