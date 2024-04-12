@@ -585,9 +585,26 @@ void mqttP_task(void* param)
     {
         if(!wifi_state)
         {
-            LOG_I("wifi未连接\r\n");
+            LOG_I("wifi未连接 mqttP_task suspend 2s\r\n");
             vTaskDelay(2000 / portTICK_PERIOD_MS);
             continue;
+        }
+
+        // fingperrint
+        if (STORG_openFingerprint != 0)
+        {
+            LOG_I("fingperprint state send\r\n");
+
+            strcpy(tmp_pub_topic, correct_pub_topic);
+            strcat(tmp_pub_topic, "/sensor0_openFingerprint");
+            val_ptr = intToChar(STORG_openFingerprint);
+
+            mqtt_publier_a_time(tmp_pub_topic, val_ptr);
+
+            STORG_openFingerprint = 0;
+            free(val_ptr);
+            val_ptr = NULL;
+            vTaskDelay(100 / portTICK_PERIOD_MS);
         }
 
         // dig_read
@@ -604,8 +621,9 @@ void mqttP_task(void* param)
 
             free(val_ptr);
             val_ptr = NULL;
+            // vTaskDelay(100/portTICK_PERIOD_MS);
         }
-        vTaskDelay(100/portTICK_PERIOD_MS);
+        
         if (STORG_IO16RDig_old != STORG_IO16RDig)
         {
             strcpy(tmp_pub_topic, correct_pub_topic);
@@ -618,8 +636,8 @@ void mqttP_task(void* param)
 
             free(val_ptr);
             val_ptr = NULL;
+            vTaskDelay(100/portTICK_PERIOD_MS);
         }
-        vTaskDelay(100/portTICK_PERIOD_MS);
 
         // adc0
         if (STORG_adc0Val_old != STORG_adc0Val)
@@ -633,9 +651,8 @@ void mqttP_task(void* param)
 
             free(val_ptr);
             val_ptr = NULL;
+            vTaskDelay(100/portTICK_PERIOD_MS);
         }
-        vTaskDelay(100/portTICK_PERIOD_MS);
-
 
         // dht11
         if (STORG_temperature != 0xff && STORG_humidity != 0xff) 
@@ -672,23 +689,7 @@ void mqttP_task(void* param)
                 val_ptr = NULL;
             }
         }
-        vTaskDelay(100/portTICK_PERIOD_MS);
-
-        // fingperrint
-        if(STORG_openFingerprint != 0)
-        {
-            LOG_I("fingperprint state send\r\n");
-
-            strcpy(tmp_pub_topic, correct_pub_topic);
-            strcat(tmp_pub_topic, "/sensor0_openFingerprint");
-            val_ptr = intToChar(STORG_openFingerprint);
-
-            mqtt_publier_a_time(tmp_pub_topic, val_ptr);
-
-            STORG_openFingerprint = 0;
-            free(val_ptr);
-            val_ptr = NULL;
-        }
+        
 
         vTaskDelay(800/portTICK_PERIOD_MS);
     }
