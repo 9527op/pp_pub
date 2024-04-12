@@ -228,6 +228,15 @@ void http_server_thread(void *msg)
 
             sprintf(data_buf, "{\'ssid\':\'%s\',\'password\':\'%s\'}",ssidValue,pwdValue);
             LOG_I("OK data_buf:%s  \r\n", data_buf);
+
+            if (ssidValue == NULL || pwdValue == NULL)
+            {
+                continue;
+            }
+            if (strlen(ssidValue) <= 0 || strlen(pwdValue) <= 0)
+            {
+                continue;
+            }
             
             // 将获取到的数据返回
             ret = write(sc, data_buf, sizeof(data_buf));

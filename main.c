@@ -94,7 +94,7 @@ volatile uint8_t STORG_IO16RDig = 0x1f;
 volatile uint8_t STORG_IO17RDig = 0x1f;
 
 // fingerprint
-volatile uint8_t TOpenFingerprint = 0;
+volatile uint8_t STORG_openFingerprint = 0; // 通过mqtt发送
 volatile uint8_t TOActionFingerprint = 0;
 volatile uint16_t fingerID_END = 0;
 volatile uint16_t fingerID_Unlock = 0xff;
@@ -509,11 +509,11 @@ void mqttP_task(void* param)
     strcat(correct_pub_topic, "/");
     strcat(correct_pub_topic, IN_WHERE_STR);
 
-    int32_t STORG_adc0Val_old = -1;             //adc0
-    uint8_t STORG_IO17RDig_old = 2;             //dig_io17
-    uint8_t STORG_IO16RDig_old = 2;             //dig_io16
-    uint8_t STORG_temperature_old = 0xff;       //温度
-    uint8_t STORG_humidity_old = 0xff;          //湿度
+    int32_t STORG_adc0Val_old = -1;           // adc0
+    uint8_t STORG_IO17RDig_old = 2;           // dig_io17
+    uint8_t STORG_IO16RDig_old = 2;           // dig_io16
+    uint8_t STORG_temperature_old = 0xff;     // 温度
+    uint8_t STORG_humidity_old = 0xff;        // 湿度
     char *val_ptr = NULL;
 
     while(1)
@@ -540,6 +540,7 @@ void mqttP_task(void* param)
             free(val_ptr);
             val_ptr = NULL;
         }
+        vTaskDelay(100/portTICK_PERIOD_MS);
         if (STORG_IO16RDig_old != STORG_IO16RDig)
         {
             strcpy(tmp_pub_topic, correct_pub_topic);
@@ -553,6 +554,7 @@ void mqttP_task(void* param)
             free(val_ptr);
             val_ptr = NULL;
         }
+        vTaskDelay(100/portTICK_PERIOD_MS);
 
         // adc0
         if (STORG_adc0Val_old != STORG_adc0Val)
@@ -567,6 +569,8 @@ void mqttP_task(void* param)
             free(val_ptr);
             val_ptr = NULL;
         }
+        vTaskDelay(100/portTICK_PERIOD_MS);
+
 
         // dht11
         if (STORG_temperature != 0xff && STORG_humidity != 0xff) 
@@ -603,7 +607,18 @@ void mqttP_task(void* param)
                 val_ptr = NULL;
             }
         }
+        vTaskDelay(100/portTICK_PERIOD_MS);
 
+
+        if(STORG_openFingerprint == 1)
+        {
+            LOG_I("fingperprint ok\r\n");
+            strcpy(tmp_pub_topic, correct_pub_topic);
+            strcat(tmp_pub_topic, "/sensor0_fingperPrint");
+
+            mqtt_publier_a_time(tmp_pub_topic, "1");
+            STORG_openFingerprint = 0;
+        }
 
         vTaskDelay(800/portTICK_PERIOD_MS);
     }
@@ -863,6 +878,11 @@ void fingerprint_task(void* param)
                 {
                     delete_resultCode = FPM383C_Delete(fingerID_Unlock, 1200);
                     LOG_W("删除指纹确认码：%02x\r\n", delete_resultCode);
+                    if (delete_resultCode == 0)
+                    {
+                        LOG_W("删除指纹成功\r\n");
+                    }
+                    TOActionFingerprint = 0;
                 }
 
                 fingerID_Unlock = 0xff;
@@ -1149,7 +1169,7 @@ void create_server_task(void)
 
 
     // mqtt sensors states pub for deives
-    // xTaskCreate(mqttP_task, (char*)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
+    xTaskCreate(mqttP_task, (char*)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
 
 
     // servo

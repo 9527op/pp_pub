@@ -14,6 +14,7 @@
 // --------------------------------------------------------------------------
 // --------------------------------------------------------------------------
 
+extern uint8_t STORG_openFingerprint; // 通过mqtt发送
 extern uint8_t TOActionFingerprint;
 extern uint16_t fingerID_END;
 extern uint16_t fingerID_Unlock;
@@ -274,6 +275,10 @@ void FPM383C_Identify(void)
 
                 // 重置接收数据缓存
                 memset(USART_ReceiveBuf, 0xFF, sizeof(USART_ReceiveBuf));
+
+                STORG_openFingerprint = 1;
+
+
                 return;
             }
             else

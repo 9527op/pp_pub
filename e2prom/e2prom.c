@@ -39,6 +39,11 @@ extern uint8_t STORG_temperature;       //温度      ------------------>dht11_t
 extern uint8_t STORG_humidity;          //湿度      ------------------>dht11_humidity
 // ------------------------------------------
 
+// 指纹fingerprint
+extern uint8_t STORG_openFingerprint; // 通过mqtt发送
+
+
+// -------------------------------------------------------
 
 struct bflb_i2c_msg_s e2prom_msgs[2];
 
