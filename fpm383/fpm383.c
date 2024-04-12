@@ -275,10 +275,7 @@ void FPM383C_Identify(void)
 
                 // 重置接收数据缓存
                 memset(USART_ReceiveBuf, 0xFF, sizeof(USART_ReceiveBuf));
-
                 STORG_openFingerprint = 1;
-
-
                 return;
             }
             else
@@ -294,6 +291,7 @@ void FPM383C_Identify(void)
 
                 // 重置接收数据缓存
                 memset(USART_ReceiveBuf, 0xFF, sizeof(USART_ReceiveBuf));
+                STORG_openFingerprint = 2;
                 return;
             }
         }

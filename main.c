@@ -251,6 +251,28 @@ extern uint8_t wifi_state;
 
 // ---------------------------------------------------
 // --------------use in mqtt_s callback---------------
+uint32_t charToInt(char *oval)
+{
+    // used in sub_logic_func
+    //
+    uint32_t tmp = 0;
+
+    for (uint8_t i = 0; i < 10; i++)
+    {
+        if (oval[i] == '\0')
+        {
+            break;
+        }
+        if (i != 0)
+        {
+            tmp *= 10;
+        }
+
+        tmp += (oval[i] - 48); //'0'
+    }
+
+    return tmp;
+}
 
 // set dropback in controller ; theRoom is debugger use
 // const char* sub_rooms[]={"theRoom","room0","live","dropback"};
@@ -265,7 +287,7 @@ void sub_logic_func(char* topic_key,char* topic_val)
     }
 
     char *key_path[20];
-    char *temp_path=NULL;
+    uint32_t senesor_tmpValue = 0;
     uint8_t i_path = 0;
     uint8_t val = 0;
 
@@ -293,12 +315,18 @@ void sub_logic_func(char* topic_key,char* topic_val)
     // ---------------------------------------------------------------
     // ------------------------logic handle---------------------------
     // ---------------------------------------------------------------
-    // 
+    //
+    
+    // topic path
+    // LOG_I("key_path[0]:%s---------------sub_logic_func\r\n", key_path[0]);
+    // LOG_I("key_path[1]:%s---------------sub_logic_func\r\n", key_path[1]);
+    // LOG_I("key_path[2]:%s---------------sub_logic_func\r\n", key_path[2]);
+    // LOG_I("key_path[i_path - 1]:%s---------------sub_logic_func\r\n", key_path[i_path - 1]);
 
-    if (!(strcmp(key_path[0], LEAGAL_SUB_TOPIC_HEAD) && strcmp(key_path[1], LEAGAL_SUB_TOPIC_USER)))
+    if (!strcmp(key_path[0], LEAGAL_SUB_TOPIC_HEAD) && !strcmp(key_path[1], LEAGAL_SUB_TOPIC_USER))
     {
         //
-        // the val is 1 or 0
+        // the val is 1 or 0 switch device
         if (strlen(topic_val) == 1 && strstr(key_path[i_path - 1], "sensor") == NULL)
         {
             // non controller using
@@ -317,7 +345,7 @@ void sub_logic_func(char* topic_key,char* topic_val)
             {
                 if (!(strcmp(key_path[i_path - 1], sub_switch_devices[i])))
                 {
-                    LOG_I("%d:%s----------------all in(sub_switch_devices):%d\r\n", i, key_path[i_path - 1], j);
+                    LOG_I("%d:%s(val:%d)------------------- in(sub_switch_devices) all:%d\r\n", i, key_path[i_path - 1], val, j);
 
                     // ----------------------------------------------------------------
                     // ----------------------val set: STORG_*--------------------------
@@ -363,6 +391,8 @@ void sub_logic_func(char* topic_key,char* topic_val)
         }
         else
         {
+            senesor_tmpValue = charToInt(topic_val);
+            LOG_W("%s val:%d---------------sub_logic_func_forSensors\r\n", key_path[i_path - 1], senesor_tmpValue);
             // controller using
             //
             if(!CONTROLLER)
@@ -370,6 +400,40 @@ void sub_logic_func(char* topic_key,char* topic_val)
                 goto sub_logic_func_end;
             }
             LOG_I("controller using\r\n");
+
+            if(!strcmp(key_path[i_path - 1], "sensor0_IO16RDig"))
+            {
+                // IO16RDig
+                STORG_IO16RDig = senesor_tmpValue;
+            }
+            else if(!strcmp(key_path[i_path - 1], "sensor0_IO17RDig"))
+            {
+                // IO17RDig
+                STORG_IO17RDig = senesor_tmpValue;
+
+            }
+            else if(!strcmp(key_path[i_path - 1], "sensor0_adc0Val"))
+            {
+                // adc0Val
+                STORG_adc0Val = senesor_tmpValue;
+            }
+            else if(!strcmp(key_path[i_path - 1], "sensor0_temperature"))
+            {
+                // dht11_temperature
+                STORG_temperature = senesor_tmpValue;
+            }
+            else if(!strcmp(key_path[i_path - 1], "sensor0_humidity"))
+            {
+                // dht11_humidity
+                STORG_humidity = senesor_tmpValue;
+                
+            }
+            else if(!strcmp(key_path[i_path - 1], "sensor0_openFingerprint"))
+            {
+                // fpm383_fingperPrint
+                // just 1
+                STORG_openFingerprint = senesor_tmpValue;
+            }
         }
     }
     
@@ -380,10 +444,11 @@ void sub_logic_func(char* topic_key,char* topic_val)
 
 sub_logic_func_end:
 
-    LOG_W("sub_logic_func STORG_fan0State:%02x\r\n",STORG_fan0State);
-    LOG_W("sub_logic_func STORG_light0State:%02x\r\n",STORG_light0State);
-    LOG_W("sub_logic_func STORG_light1State:%02x\r\n",STORG_light1State);
-    LOG_W("sub_logic_func STORG_servo0State:%02x\r\n",STORG_servo0State);
+    // switch device state
+    // LOG_W("sub_logic_func STORG_fan0State:%02x\r\n",STORG_fan0State);
+    // LOG_W("sub_logic_func STORG_light0State:%02x\r\n",STORG_light0State);
+    // LOG_W("sub_logic_func STORG_light1State:%02x\r\n",STORG_light1State);
+    // LOG_W("sub_logic_func STORG_servo0State:%02x\r\n",STORG_servo0State);
 
 
     LOG_I("--------------------------------sub_logic_func end---------------------------------------\r\n\r\n");
@@ -609,15 +674,20 @@ void mqttP_task(void* param)
         }
         vTaskDelay(100/portTICK_PERIOD_MS);
 
-
-        if(STORG_openFingerprint == 1)
+        // fingperrint
+        if(STORG_openFingerprint != 0)
         {
-            LOG_I("fingperprint ok\r\n");
-            strcpy(tmp_pub_topic, correct_pub_topic);
-            strcat(tmp_pub_topic, "/sensor0_fingperPrint");
+            LOG_I("fingperprint state send\r\n");
 
-            mqtt_publier_a_time(tmp_pub_topic, "1");
+            strcpy(tmp_pub_topic, correct_pub_topic);
+            strcat(tmp_pub_topic, "/sensor0_openFingerprint");
+            val_ptr = intToChar(STORG_openFingerprint);
+
+            mqtt_publier_a_time(tmp_pub_topic, val_ptr);
+
             STORG_openFingerprint = 0;
+            free(val_ptr);
+            val_ptr = NULL;
         }
 
         vTaskDelay(800/portTICK_PERIOD_MS);
@@ -1128,14 +1198,19 @@ void create_server_task(void)
         xTaskCreate(toLink_task, (char*)"toLink_queue", TOLINK_STACK_SIZE, NULL, TOLINK_PRIORITY, &toLink_task_hd);
         
         // mqtt subcriber
-        // xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
+        xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
 
+        // mqtt sensors states pub for deives
+        // 
+        xTaskCreate(mqttP_task, (char *)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
 
         // 
         // 
         // mqtt publisher in e2prom  for controller
         // 
         // 
+
+
 
         // oled
         // xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
@@ -1166,11 +1241,6 @@ void create_server_task(void)
 
     // dig_read 人体要4.5v以上
     // xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
-
-
-    // mqtt sensors states pub for deives
-    xTaskCreate(mqttP_task, (char*)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
-
 
     // servo
     // xTaskCreate(servo_task, (char*)"servo_task", 1024*3, NULL, 4, &servo_task_hd);

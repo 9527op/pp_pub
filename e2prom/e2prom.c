@@ -429,11 +429,17 @@ void e2prom_read_0xA0(void)
 // page 11 0xB0
 void e2prom_write_0xB0(void)
 {
+    // 0xB1 temperature
+    // 0xB2 humidity
+    // 
+    // 0xBE STORG_openFingerprint
 
+    // empty
     for(uint8_t i=0;i<16;i++)
     {
         e2prom_senData[i]=0xFF;
     }
+    // --------------------------------------------------------------------------------
 
     if(STORG_temperature!=0&&STORG_temperature<220)
     {
@@ -445,7 +451,12 @@ void e2prom_write_0xB0(void)
         e2prom_senData[2]=STORG_humidity;
     }
 
-    // ----------------------------------
+    if(STORG_openFingerprint!=0&&STORG_openFingerprint<220)
+    {
+        e2prom_senData[14]=STORG_openFingerprint;
+    }
+
+    // --------------------------------------------------------------------------------
 
     for(uint8_t i=0;i<16;i++)
     {
