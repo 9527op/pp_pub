@@ -55,8 +55,8 @@
 
 // live 0
 // room0 1
-#define IN_WHERE 1
-#define IN_WHERE_STR "room0"
+#define IN_WHERE 0
+#define IN_WHERE_STR "live"
 
 // legal mqtt_s topic HEAD (using in sub_logic_func
 #define LEAGAL_SUB_TOPIC_HEAD "mytopicLegal"
@@ -336,9 +336,9 @@ void sub_logic_func(char* topic_key,char* topic_val)
             {
                 goto sub_logic_func_end;
             }
-            
-            LOG_I("non controller using\r\n");
-            
+
+            LOG_I("in %s(%s val:%d---------------sub_logic_func_forSwitchs\r\n", key_path[i_path - 2], key_path[i_path - 1], senesor_tmpValue);
+
             val = topic_val[0] - '0';
 
             uint8_t j = sizeof(sub_switch_devices) / sizeof(sub_switch_devices[0]);
@@ -588,7 +588,7 @@ void mqttP_task(void* param)
     char *val_ptr = NULL;
 
     // --------------------------------
-    uint8_t inDebug = 1;
+    uint8_t inDebug = 0;
 
     while(1)
     {
@@ -1230,7 +1230,7 @@ void create_server_task(void)
         xTaskCreate(toLink_task, (char*)"toLink_queue", TOLINK_STACK_SIZE, NULL, TOLINK_PRIORITY, &toLink_task_hd);
         
         // mqtt subcriber
-        xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
+        // xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
 
         // mqtt sensors states pub for deives
         // 
@@ -1245,14 +1245,14 @@ void create_server_task(void)
 
 
         // oled
-        xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        // xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
     }
     else
     {
         xTaskCreate(server_task, (char*)"fw", WIFI_HTTP_SERVER_STACK_SIZE, NULL, WIFI_HTTP_SERVERTASK_PRIORITY, &server_task_hd);
 
         // oled
-        xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        // xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
 
         // 数据读取显示
         // xTaskCreate(oledDisplay_test_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
@@ -1266,13 +1266,13 @@ void create_server_task(void)
     // 下面默认能打开的是有关于传感器一类
 
     // dht11
-    xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
+    // xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
 
     // adc
-    xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
+    // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
 
     // dig_read 人体要4.5v以上
-    xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
+    // xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
 
     // --------------------------------
 
@@ -1282,13 +1282,13 @@ void create_server_task(void)
     // fingerprint  WARNNING:已知接口有冲突（探明IO23:dht11 ,IO24:sg90      这两fingerprint都要用
     // fingerprint  修改为：IO26:TX ,IO28:RX
     // 
-    // xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
+    xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
 
 
     // ----------------------------------------------------
     // ----------------------------------------------------
     // switch devices
-    xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
+    // xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
 
 
 
@@ -1318,7 +1318,7 @@ int main(void)
     // need i2c 没有连接i2c设备，则设备阻塞
 	/*OLED初始化 和 e2prom msgs初始化*/
 
-	OLED_Init();
+	// OLED_Init();
 	// e2prom_i2cMsgs_init();
 
 
