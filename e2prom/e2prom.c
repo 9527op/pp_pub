@@ -16,6 +16,7 @@
 // legal mqtt_s user (using in sub_logic_func
 #define LEAGAL_PUB_TOPIC_USER "lzbUser"
 
+int16_t first_read = 1;
 
 // ------------------------------------------
 extern struct bflb_device_s *i2c1;
@@ -25,8 +26,9 @@ extern uint8_t wifi_state;
 
 
 // e2prom read
-extern uint8_t STORG_servo0State;
-extern uint8_t STORG_fan0State;
+extern uint8_t STORG_servo0State;   //卧室窗帘
+extern uint8_t STORG_fan0State;     //卧室风扇
+extern uint8_t STORG_fan1State;     //客厅风扇
 extern uint8_t STORG_light0State;   //卧室灯
 extern uint8_t STORG_light1State;   //客厅灯
 
@@ -50,9 +52,8 @@ struct bflb_i2c_msg_s e2prom_msgs[2];
 volatile uint8_t e2prom_recData[16];
 volatile uint8_t e2prom_senData[16];
 
-// 
-uint8_t e2prom_i2c_addr=EEPROM_I2C_ADDRESS1;
-
+//
+uint8_t e2prom_i2c_addr = EEPROM_I2C_ADDRESS1;
 
 // 初始msg 指向e2prom_i2c_addr 但两个buffer指向null(0)，e2prom_msgs[1].flags默认为0
 void e2prom_i2cMsgs_init(void)
@@ -307,6 +308,7 @@ void e2prom_read_0xA0(void)
 {
     // 设置watch_dog的值，如果读取一致，则直接返回。
     uint8_t watch_dog_0xA0 = 0xdd;
+    // 
 
     read_page(EEPROM_SELECT_PAGE10);
     // LOG_I("page 0xA0 readed\r\n");
@@ -316,10 +318,17 @@ void e2prom_read_0xA0(void)
     //     LOG_W("page10 e2prom_recData[%d]:%02x\r\n",i,e2prom_recData[i]);
     // }
 
-    if (e2prom_recData[0] == watch_dog_0xA0)
+    if (first_read && wifi_state)
     {
-        LOG_W("WARNNING NO PUB_e2prom_recData[0]:%x\r\n", e2prom_recData[0]);
-        return;
+        first_read = 0;
+    }
+    else
+    {
+        if (e2prom_recData[0] == watch_dog_0xA0)
+        {
+            // LOG_W("WARNNING NO PUB_e2prom_recData[0]:%x\r\n", e2prom_recData[0]);
+            return;
+        }
     }
 
     char correct_pub_topic[128];
@@ -334,12 +343,14 @@ void e2prom_read_0xA0(void)
     // ------------------------------------------------------
     // rooms:"theRoom","room0","live","dropback"
     //
-    // 0xA1    风扇
+    // 0xA1    卧室风扇
     // 0xA2    卧室灯
     // 0xA3    客厅灯
-    // 0xA4    窗帘
+    // 0xA4    卧室窗帘
+    // 0xAB    客厅风扇
 
     LOG_W("STORG_fan0State:%02x\r\n", STORG_fan0State);
+    LOG_W("STORG_fan1State:%02x\r\n", STORG_fan1State);
     LOG_W("STORG_light0State:%02x\r\n", STORG_light0State);
     LOG_W("STORG_light1State:%02x\r\n", STORG_light1State);
     LOG_W("STORG_servo0State:%02x\r\n", STORG_servo0State);
@@ -420,8 +431,30 @@ void e2prom_read_0xA0(void)
         }
     }
 
+    if (e2prom_recData[11] == 0 || e2prom_recData[11] == 1)
+    {
+        if (wifi_state)
+        {
+            STORG_fan1State = e2prom_recData[4];
+            strcpy(temp_pub_topic, correct_pub_topic);
+            strcat(temp_pub_topic, "/live/fan1");
+
+            if (STORG_fan1State)
+            {
+                mqtt_publier_a_time(temp_pub_topic, "1");
+            }
+            else
+            {
+                mqtt_publier_a_time(temp_pub_topic, "0");
+            }
+        }
+    }
+
     // set the 0xA0 to 0xff
-    write_byte(watch_dog_0xA0, 0xA0);
+    if (e2prom_recData[0] != watch_dog_0xA0)
+    {
+        write_byte(watch_dog_0xA0, 0xA0);
+    }
     LOG_W("set 0xA0 to %02x\r\n",watch_dog_0xA0);
 }
 
@@ -441,16 +474,19 @@ void e2prom_write_0xB0(void)
     }
     // --------------------------------------------------------------------------------
 
+    // 0xB1
     if(STORG_temperature!=0&&STORG_temperature<220)
     {
         e2prom_senData[1]=STORG_temperature;
     }
 
+    // 0xB2
     if(STORG_humidity!=0&&STORG_humidity<220)
     {
         e2prom_senData[2]=STORG_humidity;
     }
 
+    // 0xBE
     if(STORG_openFingerprint!=0&&STORG_openFingerprint<220)
     {
         e2prom_senData[14]=STORG_openFingerprint;

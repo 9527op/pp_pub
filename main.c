@@ -55,8 +55,8 @@
 
 // live 0
 // room0 1
-#define IN_WHERE 0
-#define IN_WHERE_STR "live"
+#define IN_WHERE 1
+#define IN_WHERE_STR "room0"
 
 // legal mqtt_s topic HEAD (using in sub_logic_func
 #define LEAGAL_SUB_TOPIC_HEAD "mytopicLegal"
@@ -76,8 +76,9 @@
 // e2prom read
 // switch devices
 // 
-volatile uint8_t STORG_servo0State = 0;     //卧室窗帘
-volatile uint8_t STORG_fan0State = 0;       //客厅风扇
+volatile uint8_t STORG_servo0State = 0;     //卧室窗帘  room0
+volatile uint8_t STORG_fan0State = 0;       //卧室风扇  room0
+volatile uint8_t STORG_fan1State = 0;       //客厅风扇  live
 volatile uint8_t STORG_light0State = 0;     //卧室灯 room0
 volatile uint8_t STORG_light1State = 0;     //客厅灯 live
 
@@ -276,7 +277,7 @@ uint32_t charToInt(char *oval)
 
 // set dropback in controller ; theRoom is debugger use
 // const char* sub_rooms[]={"theRoom","room0","live","dropback"};
-const char *sub_switch_devices[] = {"aDevice", "light0", "fan0", "servo0", "light1"};
+const char *sub_switch_devices[] = {"aDevice", "light0", "fan0", "servo0", "light1","fan1"};
 
 void sub_logic_func(char* topic_key,char* topic_val)
 {
@@ -353,7 +354,7 @@ void sub_logic_func(char* topic_key,char* topic_val)
 
                     switch (i)
                     {
-                        // justice which room
+                        // justice which deviceName
                     case 0:
                         /* aDevice */
                         // just all set
@@ -365,6 +366,7 @@ void sub_logic_func(char* topic_key,char* topic_val)
                     case 1:
                         /* light0 */
                         STORG_light0State = val;
+                        break;
                     case 2:
                         /* fan0 */
                         STORG_fan0State = val;
@@ -378,6 +380,10 @@ void sub_logic_func(char* topic_key,char* topic_val)
                         STORG_light1State = val;
                         break;
                     case 5:
+                        /* fan1 */
+                        STORG_fan1State = val;
+                        break;
+                    case 6:
                         /* null */
                         break;
                     default:
@@ -581,6 +587,9 @@ void mqttP_task(void* param)
     uint8_t STORG_humidity_old = 0xff;        // 湿度
     char *val_ptr = NULL;
 
+    // --------------------------------
+    uint8_t inDebug = 1;
+
     while(1)
     {
         if(!wifi_state)
@@ -591,7 +600,7 @@ void mqttP_task(void* param)
         }
 
         // fingperrint
-        if (STORG_openFingerprint != 0)
+        if (STORG_openFingerprint != 0 || inDebug)
         {
             LOG_I("fingperprint state send\r\n");
 
@@ -608,8 +617,8 @@ void mqttP_task(void* param)
         }
 
         // dig_read
-        // 
-        if (STORG_IO17RDig_old != STORG_IO17RDig)
+        //
+        if (STORG_IO17RDig_old != STORG_IO17RDig || inDebug)
         {
             strcpy(tmp_pub_topic, correct_pub_topic);
             strcat(tmp_pub_topic, "/sensor0_IO17RDig");
@@ -623,8 +632,8 @@ void mqttP_task(void* param)
             val_ptr = NULL;
             // vTaskDelay(100/portTICK_PERIOD_MS);
         }
-        
-        if (STORG_IO16RDig_old != STORG_IO16RDig)
+
+        if (STORG_IO16RDig_old != STORG_IO16RDig || inDebug)
         {
             strcpy(tmp_pub_topic, correct_pub_topic);
             strcat(tmp_pub_topic, "/sensor0_IO16RDig");
@@ -640,7 +649,7 @@ void mqttP_task(void* param)
         }
 
         // adc0
-        if (STORG_adc0Val_old != STORG_adc0Val)
+        if (STORG_adc0Val_old != STORG_adc0Val || inDebug)
         {
             strcpy(tmp_pub_topic, correct_pub_topic);
             strcat(tmp_pub_topic, "/sensor0_adc0Val");
@@ -664,7 +673,7 @@ void mqttP_task(void* param)
             
             // pub dht11 datas
             strcpy(tmp_pub_topic, correct_pub_topic);
-            if (STORG_temperature_old != STORG_temperature)
+            if (STORG_temperature_old != STORG_temperature || inDebug)
             {
                 strcat(tmp_pub_topic, "/sensor0_temperature");
 
@@ -677,7 +686,7 @@ void mqttP_task(void* param)
             }
 
             strcpy(tmp_pub_topic, correct_pub_topic);
-            if (STORG_humidity_old != STORG_humidity)
+            if (STORG_humidity_old != STORG_humidity || inDebug)
             {
                 strcat(tmp_pub_topic, "/sensor0_humidity");
 
@@ -799,18 +808,29 @@ void digRead_task(void* param)
 
 void switch_devices_task(void* param)
 {
-    uint8_t STORG_servo0State_old = 2;  //卧室
-    uint8_t STORG_fan0State_old = 2;    //客厅
+    uint8_t STORG_servo0State_old = 2;  //卧室窗帘 room0
+    uint8_t STORG_fan0State_old = 2;    //卧室风扇 room0
+    uint8_t STORG_fan1State_old = 2;    //客厅风扇 live
     uint8_t STORG_light0State_old = 2; // 卧室灯 room0
     uint8_t STORG_light1State_old = 2; // 客厅灯 live
 
+
+
+    // -------------------------------------
+    uint8_t inDebug = 0;
+
     while (1)
     {
+        // LOG_W("STORG_servo0State{switch_devices_task}:%d\r\n", STORG_servo0State);
+        // LOG_W("STORG_fan0State{switch_devices_task}:%d\r\n", STORG_fan0State);
+        // LOG_W("STORG_fan1State{switch_devices_task}:%d\r\n", STORG_fan1State_old);
+        // LOG_W("STORG_light0State{switch_devices_task}:%d\r\n", STORG_light0State);
+        // LOG_W("STORG_light1State{switch_devices_task}:%d\r\n", STORG_light1State);
         switch (IN_WHERE)
         {
         case 0:
             /* live */
-            if (STORG_light1State_old != STORG_light1State)
+            if (STORG_light1State_old != STORG_light1State || inDebug)
             {
                 if(STORG_light1State)
                 {
@@ -822,9 +842,9 @@ void switch_devices_task(void* param)
                 }
                 STORG_light1State_old = STORG_light1State;
             }
-            if (STORG_fan0State_old != STORG_fan0State)
+            if (STORG_fan1State_old != STORG_fan1State || inDebug)
             {
-                if(STORG_fan0State)
+                if(STORG_fan1State)
                 {
                     start_dig();
                 }
@@ -832,13 +852,13 @@ void switch_devices_task(void* param)
                 {
                     end_dig();
                 }
-                STORG_fan0State_old = STORG_fan0State;
+                STORG_fan1State_old = STORG_fan1State;
             }
 
             break;
         case 1:
             /* room0 */
-            if (STORG_light0State_old != STORG_light0State)
+            if (STORG_light0State_old != STORG_light0State || inDebug)
             {
                 if(STORG_light0State)
                 {
@@ -850,7 +870,7 @@ void switch_devices_task(void* param)
                 }
                 STORG_light0State_old = STORG_light0State;
             }
-            if (STORG_servo0State_old != STORG_servo0State)
+            if (STORG_servo0State_old != STORG_servo0State || inDebug)
             {
                 if(STORG_servo0State)
                 {
@@ -862,6 +882,18 @@ void switch_devices_task(void* param)
                 }
                 STORG_servo0State_old = STORG_servo0State;
             }
+            if (STORG_fan0State_old != STORG_fan0State || inDebug)
+            {
+                if(STORG_fan0State)
+                {
+                    start_dig();
+                }
+                else
+                {
+                    end_dig();
+                }
+                STORG_fan0State_old = STORG_fan0State;
+            }
             break;
         case 2:
             /* null */
@@ -869,7 +901,6 @@ void switch_devices_task(void* param)
         }
         vTaskDelay(400/portTICK_PERIOD_MS);
     }
-    
 }
 
 
@@ -1214,14 +1245,14 @@ void create_server_task(void)
 
 
         // oled
-        // xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
     }
     else
     {
         xTaskCreate(server_task, (char*)"fw", WIFI_HTTP_SERVER_STACK_SIZE, NULL, WIFI_HTTP_SERVERTASK_PRIORITY, &server_task_hd);
 
         // oled
-        // xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
 
         // 数据读取显示
         // xTaskCreate(oledDisplay_test_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
@@ -1235,27 +1266,30 @@ void create_server_task(void)
     // 下面默认能打开的是有关于传感器一类
 
     // dht11
-    // xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
+    xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
 
     // adc
-    // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
+    xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
 
     // dig_read 人体要4.5v以上
-    // xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
+    xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
+
+    // --------------------------------
 
     // servo
     // xTaskCreate(servo_task, (char*)"servo_task", 1024*3, NULL, 4, &servo_task_hd);
 
-    // ----------------------------------------------------
-    // ----------------------------------------------------
-    // switch devices
-    // xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
-
-
     // fingerprint  WARNNING:已知接口有冲突（探明IO23:dht11 ,IO24:sg90      这两fingerprint都要用
     // fingerprint  修改为：IO26:TX ,IO28:RX
     // 
-    xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
+    // xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
+
+
+    // ----------------------------------------------------
+    // ----------------------------------------------------
+    // switch devices
+    xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
+
 
 
     // test
@@ -1284,7 +1318,7 @@ int main(void)
     // need i2c 没有连接i2c设备，则设备阻塞
 	/*OLED初始化 和 e2prom msgs初始化*/
 
-	// OLED_Init();
+	OLED_Init();
 	// e2prom_i2cMsgs_init();
 
 

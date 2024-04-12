@@ -261,7 +261,7 @@ void http_server_thread(void *msg)
 
             // 开启 sta 模式，连接WIFI
             // 重启设备
-            LOG_W("system 2s reset ");
+            LOG_W("system 1.5s reset ");
             vTaskDelay(1500/portTICK_PERIOD_MS);
             GLB_SW_System_Reset();
 

@@ -13,11 +13,13 @@ extern uint8_t STORG_IO17RDig;
 // USING IO16,IO17,IO18
 
 struct bflb_device_s *gpio_dig=NULL;
+struct bflb_device_s *gpio_fan=NULL;
 
 
 void init_dig(void)
 {
     gpio_dig = bflb_device_get_by_name("gpio");
+    gpio_fan = bflb_device_get_by_name("gpio");
 
     // input 16,17
     // 
@@ -27,7 +29,7 @@ void init_dig(void)
 
     // output 18
     // 
-    bflb_gpio_init(gpio_dig, GPIO_PIN_18, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_3);
+    bflb_gpio_init(gpio_fan, GPIO_PIN_18, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_3);
 
 }
 
@@ -68,7 +70,7 @@ void start_dig(void)
     if(gpio_dig!=NULL)
     {
         LOG_I("start dig\r\n");
-        bflb_gpio_set(gpio_dig, GPIO_PIN_18);
+        bflb_gpio_set(gpio_fan, GPIO_PIN_18);
     }  
 }
 
@@ -78,7 +80,7 @@ void end_dig(void)
     if(gpio_dig!=NULL)
     {
         LOG_I("end dig\r\n");
-        bflb_gpio_reset(gpio_dig, GPIO_PIN_18);
+        bflb_gpio_reset(gpio_fan, GPIO_PIN_18);
     }  
 }
 
