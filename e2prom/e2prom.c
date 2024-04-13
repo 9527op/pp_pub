@@ -478,18 +478,21 @@ void e2prom_write_0xB0(void)
     if(STORG_temperature!=0&&STORG_temperature<220)
     {
         e2prom_senData[1]=STORG_temperature;
+        STORG_temperature = 0xFF;
     }
 
     // 0xB2
     if(STORG_humidity!=0&&STORG_humidity<220)
     {
         e2prom_senData[2]=STORG_humidity;
+        STORG_humidity = 0xFF;
     }
 
     // 0xBE
     if(STORG_openFingerprint!=0&&STORG_openFingerprint<220)
     {
         e2prom_senData[14]=STORG_openFingerprint;
+        STORG_openFingerprint = 0xFF;
     }
 
     // --------------------------------------------------------------------------------
@@ -498,6 +501,11 @@ void e2prom_write_0xB0(void)
     {
         if (e2prom_senData[i] != 0xFF)
         {
+            // for (uint8_t j = 0; j < 16; j++)
+            // {
+            //     LOG_W("set EEPROM_SELECT_PAGE11-----------------%d to %02x\r\n", j, e2prom_senData[j]);
+            // }
+            
             write_page(EEPROM_SELECT_PAGE11);
             break;
         }
