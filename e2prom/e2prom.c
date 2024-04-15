@@ -39,6 +39,9 @@ extern int32_t STORG_adc0Val;
 // 温湿度写入
 extern uint8_t STORG_temperature;       //温度      ------------------>dht11_temperature
 extern uint8_t STORG_humidity;          //湿度      ------------------>dht11_humidity
+extern uint8_t STORG_temperature_decimal;       //温度      ------------------>temperature_decimal
+extern uint8_t STORG_humidity_decimal;          //湿度      ------------------>humidity_decimal
+
 // ------------------------------------------
 
 // 指纹fingerprint
@@ -464,6 +467,8 @@ void e2prom_write_0xB0(void)
 {
     // 0xB1 temperature
     // 0xB2 humidity
+    // 0xB3 temperature_decimal
+    // 0xB4 humidity_decimal
     // 
     // 0xBE STORG_openFingerprint
 
@@ -485,6 +490,20 @@ void e2prom_write_0xB0(void)
     if(STORG_humidity!=0&&STORG_humidity<220)
     {
         e2prom_senData[2]=STORG_humidity;
+        STORG_humidity = 0xFF;
+    }
+
+    // 0xB3
+    if(STORG_temperature_decimal!=0&&STORG_temperature_decimal<220)
+    {
+        e2prom_senData[3]=STORG_temperature_decimal;
+        STORG_temperature_decimal = 0xFF;
+    }
+
+    // 0xB4
+    if(STORG_humidity!=0&&STORG_humidity<220)
+    {
+        e2prom_senData[4]=STORG_humidity;
         STORG_humidity = 0xFF;
     }
 

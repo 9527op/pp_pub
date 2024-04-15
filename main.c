@@ -87,8 +87,11 @@ volatile uint8_t STORG_adc0Cha = 0;
 volatile int32_t STORG_adc0Val = 0;
 
 // dht11
-volatile uint8_t STORG_temperature = 0;       //温度      ------------------>temperature_integer
-volatile uint8_t STORG_humidity = 0;          //湿度      ------------------>humidity_integer
+volatile uint8_t STORG_temperature = 0xff;       //温度      ------------------>temperature_integer
+volatile uint8_t STORG_humidity = 0xff;          //湿度      ------------------>humidity_integer
+volatile uint8_t STORG_temperature_decimal = 0xff;       //温度      ------------------>temperature_decimal
+volatile uint8_t STORG_humidity_decimal = 0xff;          //湿度      ------------------>humidity_decimal
+
 
 //dig_read IO16,17
 volatile uint8_t STORG_IO16RDig = 0x1f;
@@ -998,26 +1001,171 @@ void fingerprint_task(void* param)
 }
 
 
-void test_task(void* param)
+
+// ---------------------------------------------------------------------------------------------
+// oled
+
+void odisplay_room0(void)
 {
-    while(1)
+    OLED_Clear();
+    OLED_ShowChinese(16, 0, "状态（卧室）");
+
+    if (STORG_light0State)
     {
-        if(wifi_state)
+        OLED_ShowChinese(24, 16, "灯光：启动");
+    }
+    else
+    {
+        OLED_ShowChinese(24, 16, "灯光：关闭");
+    }
+    if (STORG_fan0State)
+    {
+        OLED_ShowChinese(24, 32, "风扇：启动");
+    }
+    else
+    {
+        OLED_ShowChinese(24, 32, "风扇：关闭");
+    }
+    if (STORG_servo0State)
+    {
+        OLED_ShowChinese(24, 48, "窗帘：开启");
+    }
+    else
+    {
+        OLED_ShowChinese(24, 48, "窗帘：关闭");
+    }
+    OLED_ReverseArea(0, 0, 128, 16);
+    OLED_ReverseArea(72, 16, 32, 16);
+    OLED_ReverseArea(72, 32, 32, 16);
+    OLED_ReverseArea(72, 48, 32, 16);
+    OLED_Update();
+}
+
+void odisplay_live(void)
+{
+    uint8_t local_temperature = 0xff;
+    uint8_t local_humidity = 0xff;
+    uint8_t local_temperature_decimal = 0xff;
+    uint8_t local_humidity_decimal = 0xff;
+
+    char var_th[20];
+    char *var_th_ptr = NULL;
+
+    uint8_t debug = 0;
+
+
+    OLED_Clear();
+
+
+    if ((STORG_temperature != 0xff && STORG_humidity != 0xff) || debug)
+    {
+        local_temperature = STORG_temperature;
+        local_humidity = STORG_humidity;
+        local_temperature_decimal = STORG_temperature_decimal;
+        local_humidity_decimal = STORG_humidity_decimal;
+    }
+
+    OLED_ShowChinese(16, 0, "状态（客厅）");
+
+    if (STORG_light1State)
+    {
+        OLED_ShowChinese(24, 16, "灯光：启动");
+    }
+    else
+    {
+        OLED_ShowChinese(24, 16, "灯光：关闭");
+    }
+    if (STORG_fan1State)
+    {
+        OLED_ShowChinese(24, 32, "风扇：启动");
+    }
+    else
+    {
+        OLED_ShowChinese(24, 32, "风扇：关闭");
+    }
+    
+    OLED_ReverseArea(0, 0, 128, 16);
+    OLED_ReverseArea(72, 16, 32, 16);
+    OLED_ReverseArea(72, 32, 32, 16);
+
+  
+
+    // 温湿度传感数据
+    OLED_ShowChinese(0, 48, "温湿度：");
+    
+    if((local_temperature != 0xff && local_humidity != 0xff) || debug)
+    {
+        memset(var_th,'\0',20);
+
+        var_th_ptr = intToChar(local_temperature);
+        strcat(var_th,var_th_ptr);
+        strcat(var_th,".");
+        free(var_th_ptr);
+        var_th_ptr = intToChar(local_temperature_decimal);
+        strcat(var_th,var_th_ptr);
+        
+        strcat(var_th,"^C");     //实际是°C
+        strcat(var_th," ");
+        free(var_th_ptr);
+        
+        var_th_ptr = intToChar(local_humidity);
+        strcat(var_th,var_th_ptr);
+        strcat(var_th,".");
+        free(var_th_ptr);
+        var_th_ptr = intToChar(local_humidity_decimal);
+        strcat(var_th,var_th_ptr);
+        strcat(var_th,"%");
+
+        free(var_th_ptr);
+        var_th_ptr = NULL;
+
+        // OLED_ShowString(64, 48, var_th, OLED_6X8);
+    }else{
+        OLED_ShowChinese(64, 48, "获取失败");
+        OLED_Update();
+        return;
+        vTaskDelay(700 / portTICK_PERIOD_MS);
+    }
+
+    LOG_I("odisplay_live温湿度值：%s", var_th);
+    if (strlen(var_th) > 7)
+    {
+        OLED_Update();
+        for (uint8_t i = 0; i < strlen(var_th) - 6; i++)
         {
-            mqtt_publier_a_time("mytopicLegal/lzbUser/theRoom/aDevice","1");
-
-            vTaskDelay(1500/portTICK_PERIOD_MS);
-
-            mqtt_publier_a_time("mytopicLegal/lzbUser/theRoom/aDevice","0");
-
-            // LOG_I("test_task a time");  
+            var_th_ptr = &var_th[i];
+            OLED_ClearArea(64, 48, 64, 16);
+            OLED_ShowString(64, 48, var_th_ptr, OLED_8X16);
+            OLED_ReverseArea(64, 48, 128, 16);
+            // OLED_UpdateArea(64, 48, 64, 16);
+            OLED_Update();
+            vTaskDelay(700 / portTICK_PERIOD_MS);
         }
         
-        vTaskDelay(1800/portTICK_PERIOD_MS);
+    }
+    else
+    {
+        OLED_ShowString(64, 48, var_th, OLED_8X16);
+        OLED_ReverseArea(64, 48, 8 * strlen(var_th), 16);
+        OLED_Update();
     }
 }
 
-// oled
+
+void odisplay_controller(void)
+{
+    // for controller
+    // 
+    // live
+    odisplay_live();
+    
+    vTaskDelay(1500 / portTICK_PERIOD_MS);
+    
+    // room0
+    odisplay_room0();
+}
+
+// ----------------------------------
 
 void oldeDisplay_task(void* param)
 {
@@ -1204,6 +1352,33 @@ void oledDisplay_test_task(void* param)
 }
 
 
+// -----------------------------------
+
+void test_task(void* param)
+{
+    uint8_t oled_debug = 1;
+
+    while(1)
+    {
+        if(wifi_state && !oled_debug)
+        {
+            mqtt_publier_a_time("mytopicLegal/lzbUser/theRoom/aDevice","1");
+
+            vTaskDelay(1500/portTICK_PERIOD_MS);
+
+            mqtt_publier_a_time("mytopicLegal/lzbUser/theRoom/aDevice","0");
+
+            // LOG_I("test_task a time");  
+        }
+        else
+        {
+            odisplay_controller();
+        }
+        
+        vTaskDelay(1800/portTICK_PERIOD_MS);
+    }
+}
+
 // 
 // ---------------------------------------------------------------------------
 // 
@@ -1230,7 +1405,7 @@ void create_server_task(void)
         xTaskCreate(toLink_task, (char*)"toLink_queue", TOLINK_STACK_SIZE, NULL, TOLINK_PRIORITY, &toLink_task_hd);
         
         // mqtt subcriber
-        xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
+        // xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
 
         // mqtt sensors states pub for deives
         // 
@@ -1244,14 +1419,14 @@ void create_server_task(void)
 
 
         // oled
-        xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        // xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
     }
     else
     {
         xTaskCreate(server_task, (char*)"fw", WIFI_HTTP_SERVER_STACK_SIZE, NULL, WIFI_HTTP_SERVERTASK_PRIORITY, &server_task_hd);
 
         // oled
-        xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        // xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
 
         // 数据读取显示
         // xTaskCreate(oledDisplay_test_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
@@ -1260,7 +1435,7 @@ void create_server_task(void)
 
     // 控制端e2prom数据读取
     // e2prom
-    xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
+    // xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
 
     // 下面默认能打开的是有关于传感器一类
 
@@ -1292,7 +1467,7 @@ void create_server_task(void)
 
 
     // test
-    // xTaskCreate(test_task, (char*)"test_task", TEST_STACK_SIZE, NULL, TEST_PRIORITY, &test_task_hd);
+    xTaskCreate(test_task, (char*)"test_task", TEST_STACK_SIZE, NULL, TEST_PRIORITY, &test_task_hd);
 
 
 }
@@ -1318,7 +1493,7 @@ int main(void)
 	/*OLED初始化 和 e2prom msgs初始化*/
 
 	OLED_Init();
-	e2prom_i2cMsgs_init();
+	// e2prom_i2cMsgs_init();
 
 
     // 

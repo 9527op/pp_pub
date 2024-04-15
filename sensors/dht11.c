@@ -16,6 +16,9 @@ volatile float dht11_temperature =0;
 // -------------------------------------------------
 extern uint8_t STORG_temperature;
 extern uint8_t STORG_humidity; 
+extern uint8_t STORG_temperature_decimal;
+extern uint8_t STORG_humidity_decimal;
+
 //
 // -------------------------------------------------
  
@@ -24,6 +27,8 @@ void DHT_START()
 {
     STORG_temperature = 0xff;
     STORG_humidity = 0xff;
+    STORG_temperature_decimal = 0xff;
+    STORG_humidity_decimal = 0xff;
 
     struct bflb_device_s *gpio;
     gpio = bflb_device_get_by_name("gpio");
@@ -96,4 +101,6 @@ void DHT_START()
 
     STORG_temperature=temperature_integer;
     STORG_humidity=humidity_integer;
+    STORG_temperature_decimal = temperature_decimal;
+    STORG_humidity_decimal = humidity_decimal;
 }
