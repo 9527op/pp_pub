@@ -37,6 +37,7 @@ make flash COMX=xxx ## xxx is your com name
 传感器(输出类)
 
 温湿度传感器        sensors/dht11.c IO23  型号dht11
+指纹传感器        fpm383/fpm383.c IO26(TX)、IO28(RX)   型号dht11
 ```
 
 
