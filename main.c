@@ -49,9 +49,11 @@
 #include "log.h"
 
 
-// 家具端设置为0,语音控制端设置为1
+// 全部
+// 设置为0,语音控制端设置为1
 // 最终影响sub_logic_func函数中是否逻辑处理，switch_device分支（家具端使用，非switch_device分支（语音控制端使用
 #define CONTROLLER 1
+#define JUST_USING_I2C0 1
 
 // live 0
 // room0 1
@@ -157,6 +159,14 @@ struct bflb_device_s *i2c1 = NULL;
 
 void i2c1_init(void)
 {
+
+    if (JUST_USING_I2C0 && i2c0 != NULL)
+    {
+        i2c1 = i2c0;
+        LOG_I("JUST_USING_I2C0 is true, then i2c1 is i2c0\r\n");
+        return;
+    }
+
     struct bflb_device_s* gpio;
 
     gpio = bflb_device_get_by_name("gpio");
@@ -720,7 +730,8 @@ void e2prom_task(void* param)
         e2prom_read_0xA0();
         e2prom_write_0xB0();
 
-        vTaskDelay(100/portTICK_PERIOD_MS);
+        // LOG_I("e2prom_task one finish\r\n");
+        vTaskDelay(300/portTICK_PERIOD_MS);
     }
 }
 
@@ -1156,13 +1167,19 @@ void odisplay_controller(void)
 {
     // for controller
     // 
-    // live
-    odisplay_live();
+
+    while(1)
+    {
+        // live
+        odisplay_live();
+        vTaskDelay(800 / portTICK_PERIOD_MS);
+
+        // room0
+        odisplay_room0();
+        vTaskDelay(800 / portTICK_PERIOD_MS);
+
+    }
     
-    vTaskDelay(1500 / portTICK_PERIOD_MS);
-    
-    // room0
-    odisplay_room0();
 }
 
 // ----------------------------------
@@ -1405,7 +1422,7 @@ void create_server_task(void)
         xTaskCreate(toLink_task, (char*)"toLink_queue", TOLINK_STACK_SIZE, NULL, TOLINK_PRIORITY, &toLink_task_hd);
         
         // mqtt subcriber
-        // xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
+        xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
 
         // mqtt sensors states pub for deives
         // 
@@ -1417,16 +1434,17 @@ void create_server_task(void)
         // 
 
 
-
         // oled
-        // xTaskCreate(oldeDisplay_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        /*OLED一定要在循环中*/
+        xTaskCreate(odisplay_controller, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
     }
     else
     {
         xTaskCreate(server_task, (char*)"fw", WIFI_HTTP_SERVER_STACK_SIZE, NULL, WIFI_HTTP_SERVERTASK_PRIORITY, &server_task_hd);
 
         // oled
-        // xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        /*OLED一定要在循环中*/
+        xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
 
         // 数据读取显示
         // xTaskCreate(oledDisplay_test_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
@@ -1435,7 +1453,7 @@ void create_server_task(void)
 
     // 控制端e2prom数据读取
     // e2prom
-    // xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
+    xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
 
     // 下面默认能打开的是有关于传感器一类
 
@@ -1467,7 +1485,7 @@ void create_server_task(void)
 
 
     // test
-    xTaskCreate(test_task, (char*)"test_task", TEST_STACK_SIZE, NULL, TEST_PRIORITY, &test_task_hd);
+    // xTaskCreate(test_task, (char*)"test_task", TEST_STACK_SIZE, NULL, TEST_PRIORITY, &test_task_hd);
 
 
 }
@@ -1493,7 +1511,7 @@ int main(void)
 	/*OLED初始化 和 e2prom msgs初始化*/
 
 	OLED_Init();
-	// e2prom_i2cMsgs_init();
+	e2prom_i2cMsgs_init();
 
 
     // 
