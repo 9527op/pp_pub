@@ -52,13 +52,14 @@
 // 全部
 // 设置为0,语音控制端设置为1
 // 最终影响sub_logic_func函数中是否逻辑处理，switch_device分支（家具端使用，非switch_device分支（语音控制端使用
-#define CONTROLLER 1
+#define CONTROLLER 0
 #define JUST_USING_I2C0 1
 
 // live 0
 // room0 1
-#define IN_WHERE 0
-#define IN_WHERE_STR "live"
+// door 2
+#define IN_WHERE 2
+#define IN_WHERE_STR "door"
 
 // legal mqtt_s topic HEAD (using in sub_logic_func
 #define LEAGAL_SUB_TOPIC_HEAD "mytopicLegal"
@@ -70,6 +71,13 @@
 #define LEAGAL_PUB_TOPIC_USER "lzbUser"
 
 
+//mqttP_task using
+// 
+volatile char *CONRRECT_MQTT_TOPIC = NULL;
+uint8_t dig_read16_use = 0;
+uint8_t dig_read17_use = 0;
+uint8_t adc0_use = 0;
+uint8_t dht11_use = 0;
 
 // -------------------------------------------------------------------------------
 // -----------------------------状态变量-------------------------------------------
@@ -418,7 +426,7 @@ void sub_logic_func(char* topic_key,char* topic_val)
             {
                 goto sub_logic_func_end;
             }
-            LOG_I("controller using\r\n");
+            LOG_I("controller using{sub_logic_func}\r\n");
 
             if(!strcmp(key_path[i_path - 1], "sensor0_IO16RDig"))
             {
@@ -436,30 +444,30 @@ void sub_logic_func(char* topic_key,char* topic_val)
                 // adc0Val
                 STORG_adc0Val = senesor_tmpValue;
             }
-            else if(!strcmp(key_path[i_path - 1], "sensor0_temperature"))
+            else if(!strcmp(key_path[i_path - 1], "sensor0_temperature") && !strcmp(key_path[2], "live"))
             {
                 // dht11_temperature
                 STORG_temperature = senesor_tmpValue;
             }
-            else if(!strcmp(key_path[i_path - 1], "sensor0_humidity"))
+            else if(!strcmp(key_path[i_path - 1], "sensor0_humidity")&& !strcmp(key_path[2], "live"))
             {
                 // dht11_humidity
                 STORG_humidity = senesor_tmpValue;
                 
             }
-            else if(!strcmp(key_path[i_path - 1], "sensor0_temperature_decimal"))
+            else if(!strcmp(key_path[i_path - 1], "sensor0_temperature_decimal")&& !strcmp(key_path[2], "live"))
             {
                 // dht11_humidity
                 STORG_temperature_decimal = senesor_tmpValue;
                 
             }
-            else if(!strcmp(key_path[i_path - 1], "sensor0_humidity_decimal"))
+            else if(!strcmp(key_path[i_path - 1], "sensor0_humidity_decimal")&& !strcmp(key_path[2], "live"))
             {
                 // dht11_humidity
                 STORG_humidity_decimal = senesor_tmpValue;
                 
             }
-            else if(!strcmp(key_path[i_path - 1], "sensor0_openFingerprint"))
+            else if(!strcmp(key_path[i_path - 1], "sensor0_openFingerprint")&& !strcmp(key_path[2], "door"))
             {
                 // fpm383_fingperPrint
                 // just 1
@@ -605,6 +613,10 @@ void mqttP_task(void* param)
     strcat(correct_pub_topic, "/");
     strcat(correct_pub_topic, IN_WHERE_STR);
 
+    // save in 全局
+    CONRRECT_MQTT_TOPIC = malloc(50);
+    strcpy(CONRRECT_MQTT_TOPIC, correct_pub_topic);
+
     int32_t STORG_adc0Val_old = -1;           // adc0
     uint8_t STORG_IO17RDig_old = 2;           // dig_io17
     uint8_t STORG_IO16RDig_old = 2;           // dig_io16
@@ -615,7 +627,8 @@ void mqttP_task(void* param)
     char *val_ptr = NULL;
 
     // --------------------------------
-    uint8_t inDebug = 0;
+    // -----74行变量——使能发送mqtt信息---------
+    // --------------------------------
 
     while(1)
     {
@@ -626,26 +639,27 @@ void mqttP_task(void* param)
             continue;
         }
 
-        // fingperrint
-        if (STORG_openFingerprint != 0 || inDebug)
-        {
-            LOG_I("fingperprint state send\r\n");
+        // 在FPM383C_Identify发送
+        // fingperrint  
+        // if (STORG_openFingerprint != 0 || inDebug)
+        // {
+        //     LOG_I("fingperprint state send\r\n");
 
-            strcpy(tmp_pub_topic, correct_pub_topic);
-            strcat(tmp_pub_topic, "/sensor0_openFingerprint");
-            val_ptr = intToChar(STORG_openFingerprint);
+        //     strcpy(tmp_pub_topic, correct_pub_topic);
+        //     strcat(tmp_pub_topic, "/sensor0_openFingerprint");
+        //     val_ptr = intToChar(STORG_openFingerprint);
 
-            mqtt_publier_a_time(tmp_pub_topic, val_ptr);
+        //     mqtt_publier_a_time(tmp_pub_topic, val_ptr);
 
-            STORG_openFingerprint = 0;
-            free(val_ptr);
-            val_ptr = NULL;
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-        }
+        //     STORG_openFingerprint = 0;
+        //     free(val_ptr);
+        //     val_ptr = NULL;
+        //     vTaskDelay(100 / portTICK_PERIOD_MS);
+        // }
 
         // dig_read
         //
-        if (STORG_IO17RDig_old != STORG_IO17RDig || inDebug)
+        if (STORG_IO17RDig_old != STORG_IO17RDig && dig_read17_use)
         {
             strcpy(tmp_pub_topic, correct_pub_topic);
             strcat(tmp_pub_topic, "/sensor0_IO17RDig");
@@ -660,7 +674,7 @@ void mqttP_task(void* param)
             // vTaskDelay(100/portTICK_PERIOD_MS);
         }
 
-        if (STORG_IO16RDig_old != STORG_IO16RDig || inDebug)
+        if (STORG_IO16RDig_old != STORG_IO16RDig && dig_read16_use)
         {
             strcpy(tmp_pub_topic, correct_pub_topic);
             strcat(tmp_pub_topic, "/sensor0_IO16RDig");
@@ -676,7 +690,7 @@ void mqttP_task(void* param)
         }
 
         // adc0
-        if (STORG_adc0Val_old != STORG_adc0Val || inDebug)
+        if (STORG_adc0Val_old != STORG_adc0Val && adc0_use)
         {
             strcpy(tmp_pub_topic, correct_pub_topic);
             strcat(tmp_pub_topic, "/sensor0_adc0Val");
@@ -691,7 +705,7 @@ void mqttP_task(void* param)
         }
 
         // dht11
-        if (STORG_temperature != 0xff && STORG_humidity != 0xff) 
+        if (STORG_temperature != 0xff && STORG_humidity != 0xff && dht11_use) 
         {
             
 
@@ -951,6 +965,7 @@ void switch_devices_task(void* param)
             }
             break;
         case 2:
+            /* door */
             /* null */
             break;
         }
@@ -996,6 +1011,9 @@ void fingerprint_task(void* param)
     }
     LOG_I("fingerID_END is:%d\r\n", fingerID_END);
     // uint16_t
+
+    // 门锁初始化
+    pwm_sg90_turn_0();
 
     while (1)
     {
@@ -1499,7 +1517,7 @@ void create_server_task(void)
     // 下面默认能打开的是有关于传感器一类
 
     // dht11
-    xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
+    // xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
 
     // adc
     // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
@@ -1515,13 +1533,13 @@ void create_server_task(void)
     // fingerprint  WARNNING:已知接口有冲突（探明IO23:dht11 ,IO24:sg90      这两fingerprint都要用
     // fingerprint  修改为：IO26:TX ,IO28:RX
     // 
-    // xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
+    xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
 
 
     // ----------------------------------------------------
     // ----------------------------------------------------
     // switch devices
-    xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
+    // xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
 
 
 

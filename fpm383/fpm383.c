@@ -18,6 +18,8 @@ extern uint8_t STORG_openFingerprint; // 通过mqtt发送
 extern uint8_t TOActionFingerprint;
 extern uint16_t fingerID_END;
 extern uint16_t fingerID_Unlock;
+
+extern char *CONRRECT_MQTT_TOPIC;
 #define fingerID_END_STR "fingerID_END"                 //保证和main.c文件中的同名预定义的值相同
 
 
@@ -259,39 +261,53 @@ void FPM383C_Identify(void)
         if (FPM383C_GenChar(2000) == 0x00)
         {
             struct bflb_device_s *led = bflb_device_get_by_name("gpio");
+            
+
+            // 
             if (FPM383C_Search(2000) == 0x00)
             {
                 score = (int)((USART_ReceiveBuf[10] << 8) + USART_ReceiveBuf[11]);
                 fingerID_Unlock = score;
                 LOG_E("识别成功 指纹ID：%d\r\n", fingerID_Unlock);
 
-                FPM383C_ControlLED(PS_GreenLEDBuf, 1000);
+                // FPM383C_ControlLED(PS_GreenLEDBuf, 1000);
+                STORG_openFingerprint = 1;
+                mqtt_pub_fingerPrint_state();
+
 
                 // 控制板上led灯
-                // bflb_gpio_init(led, GPIO_PIN_14, GPIO_OUTPUT);
-                // bflb_gpio_set(led, GPIO_PIN_14);
-                // bflb_mtimer_delay_ms(1000);
-                // bflb_gpio_reset(led, GPIO_PIN_14);
+                bflb_gpio_init(led, GPIO_PIN_14, GPIO_OUTPUT);
+                bflb_gpio_set(led, GPIO_PIN_14);
+                // 开锁
+                pwm_sg90_turn_180();
+                bflb_mtimer_delay_ms(800);
+                bflb_gpio_reset(led, GPIO_PIN_14);
+
+                bflb_mtimer_delay_ms(1800);
+                pwm_sg90_turn_0();
+
 
                 // 重置接收数据缓存
                 memset(USART_ReceiveBuf, 0xFF, sizeof(USART_ReceiveBuf));
-                STORG_openFingerprint = 1;
+                
                 return;
             }
             else
             {
                 LOG_E("识别失败\r\n");
 
-                FPM383C_ControlLED(PS_RedLEDBuf, 1000);
+                // FPM383C_ControlLED(PS_RedLEDBuf, 1000);
+                STORG_openFingerprint = 2;
+                mqtt_pub_fingerPrint_state();
 
-                // bflb_gpio_init(led, GPIO_PIN_12, GPIO_OUTPUT);
-                // bflb_gpio_set(led, GPIO_PIN_12);
-                // bflb_mtimer_delay_ms(1000);
-                // bflb_gpio_reset(led, GPIO_PIN_12);
+                bflb_gpio_init(led, GPIO_PIN_12, GPIO_OUTPUT);
+                bflb_gpio_set(led, GPIO_PIN_12);
+                bflb_mtimer_delay_ms(800);
+                bflb_gpio_reset(led, GPIO_PIN_12);
 
                 // 重置接收数据缓存
                 memset(USART_ReceiveBuf, 0xFF, sizeof(USART_ReceiveBuf));
-                STORG_openFingerprint = 2;
+                
                 return;
             }
         }
@@ -380,6 +396,33 @@ void FPM383C_Enroll(uint16_t pageID, uint16_t timeout)
 
 
 
+void mqtt_pub_fingerPrint_state()
+{
+    if (CONRRECT_MQTT_TOPIC == NULL || strlen(CONRRECT_MQTT_TOPIC) <= 0)
+    {
+        return;
+    }
+
+    char tmp_pub_topic[50];
+    char *val_ptr = NULL;
+    memset(tmp_pub_topic,0,50);
+    strcpy(tmp_pub_topic,CONRRECT_MQTT_TOPIC);
+
+    // fingperrint
+    if (STORG_openFingerprint != 0)
+    {
+        LOG_I("fingperprint state send\r\n");
+
+        strcat(tmp_pub_topic, "/sensor0_openFingerprint");
+        val_ptr = intToChar(STORG_openFingerprint);
+
+        mqtt_publier_a_time(tmp_pub_topic, val_ptr);
+
+        STORG_openFingerprint = 0;
+        free(val_ptr);
+        val_ptr = NULL;
+    }
+}
 
 
 
