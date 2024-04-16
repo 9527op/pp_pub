@@ -447,6 +447,18 @@ void sub_logic_func(char* topic_key,char* topic_val)
                 STORG_humidity = senesor_tmpValue;
                 
             }
+            else if(!strcmp(key_path[i_path - 1], "sensor0_temperature_decimal"))
+            {
+                // dht11_humidity
+                STORG_temperature_decimal = senesor_tmpValue;
+                
+            }
+            else if(!strcmp(key_path[i_path - 1], "sensor0_humidity_decimal"))
+            {
+                // dht11_humidity
+                STORG_humidity_decimal = senesor_tmpValue;
+                
+            }
             else if(!strcmp(key_path[i_path - 1], "sensor0_openFingerprint"))
             {
                 // fpm383_fingperPrint
@@ -598,6 +610,8 @@ void mqttP_task(void* param)
     uint8_t STORG_IO16RDig_old = 2;           // dig_io16
     uint8_t STORG_temperature_old = 0xff;     // 温度
     uint8_t STORG_humidity_old = 0xff;        // 湿度
+    uint8_t STORG_temperature_decimal_old = 0xff;        // 温度小
+    uint8_t STORG_humidity_decimal_old = 0xff;        // 湿度小
     char *val_ptr = NULL;
 
     // --------------------------------
@@ -706,6 +720,33 @@ void mqttP_task(void* param)
                 val_ptr = intToChar(STORG_humidity);
                 mqtt_publier_a_time(tmp_pub_topic, val_ptr);
                 STORG_humidity_old = STORG_humidity;
+
+                free(val_ptr);
+                val_ptr = NULL;
+            }
+
+            // STORG_temperature_decimal
+            strcpy(tmp_pub_topic, correct_pub_topic);
+            if (STORG_temperature_decimal_old != STORG_temperature_decimal || inDebug)
+            {
+                strcat(tmp_pub_topic, "/sensor0_temperature_decimal");
+
+                val_ptr = intToChar(STORG_temperature_decimal);
+                mqtt_publier_a_time(tmp_pub_topic, val_ptr);
+                STORG_temperature_decimal_old = STORG_temperature_decimal;
+
+                free(val_ptr);
+                val_ptr = NULL;
+            }
+            // STORG_humidity_decimal
+            strcpy(tmp_pub_topic, correct_pub_topic);
+            if (STORG_humidity_decimal_old != STORG_humidity_decimal || inDebug)
+            {
+                strcat(tmp_pub_topic, "/sensor0_humidity_decimal");
+
+                val_ptr = intToChar(STORG_humidity_decimal);
+                mqtt_publier_a_time(tmp_pub_topic, val_ptr);
+                STORG_humidity_decimal_old = STORG_humidity_decimal;
 
                 free(val_ptr);
                 val_ptr = NULL;
@@ -1138,7 +1179,7 @@ void odisplay_live(void)
         vTaskDelay(700 / portTICK_PERIOD_MS);
     }
 
-    LOG_I("odisplay_live温湿度值：%s", var_th);
+    LOG_I("odisplay_live温湿度值：%s\r\n", var_th);
     if (strlen(var_th) > 7)
     {
         OLED_Update();
@@ -1426,7 +1467,7 @@ void create_server_task(void)
 
         // mqtt sensors states pub for deives
         // 
-        // xTaskCreate(mqttP_task, (char *)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
+        xTaskCreate(mqttP_task, (char *)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
 
 
         // mqtt publisher in e2prom  for controller
@@ -1453,12 +1494,12 @@ void create_server_task(void)
 
     // 控制端e2prom数据读取
     // e2prom
-    xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
+    // xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
 
     // 下面默认能打开的是有关于传感器一类
 
     // dht11
-    // xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
+    xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
 
     // adc
     // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
@@ -1480,7 +1521,7 @@ void create_server_task(void)
     // ----------------------------------------------------
     // ----------------------------------------------------
     // switch devices
-    // xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
+    xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
 
 
 
