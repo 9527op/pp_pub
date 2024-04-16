@@ -909,7 +909,7 @@ void switch_devices_task(void* param)
                 }
                 STORG_fan1State_old = STORG_fan1State;
             }
-
+            // dht11放着
             break;
         case 1:
             /* room0 */
