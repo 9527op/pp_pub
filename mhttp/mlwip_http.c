@@ -226,7 +226,7 @@ void http_server_thread(void *msg)
             // char *data_buf_ptr,c_for='}';
             memset(data_buf,'\n',sizeof(data_buf));
 
-            sprintf(data_buf, "{\'ssid\':\'%s\',\'password\':\'%s\'}",ssidValue,pwdValue);
+            sprintf(data_buf, "提交成功，即将尝试连接该无线网络：{\'ssid\':\'%s\',\'password\':\'%s\'}\r\n请关闭当前页面",ssidValue,pwdValue);
             LOG_I("OK data_buf:%s  \r\n", data_buf);
 
             if (ssidValue == NULL || pwdValue == NULL)

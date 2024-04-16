@@ -1511,7 +1511,7 @@ int main(void)
 	/*OLED初始化 和 e2prom msgs初始化*/
 
 	OLED_Init();
-	e2prom_i2cMsgs_init();
+	// e2prom_i2cMsgs_init();
 
 
     // 
