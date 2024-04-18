@@ -72,6 +72,10 @@ void start_dig(void)
         LOG_I("start dig\r\n");
         bflb_gpio_set(gpio_fan, GPIO_PIN_18);
     }  
+    else
+    {
+        LOG_I("gpio_dig is NULL\r\n");
+    }
 }
 
 void end_dig(void)
@@ -81,7 +85,11 @@ void end_dig(void)
     {
         LOG_I("end dig\r\n");
         bflb_gpio_reset(gpio_fan, GPIO_PIN_18);
-    }  
+    }
+    else
+    {
+        LOG_I("gpio_dig is NULL\r\n");
+    }
 }
 
 

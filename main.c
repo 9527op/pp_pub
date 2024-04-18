@@ -58,7 +58,7 @@
 // live 0
 // room0 1
 // door 2
-#define IN_WHERE 2
+#define IN_WHERE 0
 #define IN_WHERE_STR "door"
 
 // legal mqtt_s topic HEAD (using in sub_logic_func
@@ -843,6 +843,8 @@ void dht11_task(void* param)
 
 void adc_task(void* param)
 {
+    uint32_t watchDog_adc = 1500;
+
     struct bflb_device_s* gpio;
     gpio = bflb_device_get_by_name("gpio");
     /* ADC_CH0 */
@@ -856,10 +858,50 @@ void adc_task(void* param)
 
         start_adc();
 
+        
+
         if (!xTaskResumeAll())
         {
             // LOG_I("taskYIELD\r\n");
             taskYIELD();
+        }
+
+        LOG_I("just light in adc_task\r\n");
+        // 判断是否启动灯光
+        switch (IN_WHERE)
+        {
+            // live 0
+            // room0 1
+            // STORG_light0State = 0;     //卧室灯 room0
+            // STORG_light1State = 0;     // 客厅灯 live
+        case 0:
+            if (STORG_adc0Val < watchDog_adc)
+            {
+                STORG_light1State = 0;
+                end_rgb();
+            }
+            else
+            {
+                STORG_light1State = 1;
+                start_rgb();
+            }
+            break;
+
+        case 1:
+            if (STORG_adc0Val < watchDog_adc)
+            {
+                STORG_light0State = 0;
+                end_rgb();
+            }
+            else
+            {
+                STORG_light0State = 1;
+                start_rgb();
+            }
+            break;
+
+        default:
+            break;
         }
 
         vTaskDelay(400/portTICK_PERIOD_MS);
@@ -1086,12 +1128,12 @@ void odisplay_door(void)
     OLED_ShowString(0, 16, ">>>>>>>><<<<<<<<", OLED_8X16);
     if (STORG_light0State == 0)
     {
-        OLED_ShowChinese(8, 32, "《大门：关闭》");
+        OLED_ShowChinese(8, 32, "《房门：关闭》");
         OLED_ReverseArea(72, 32, 32, 16);
     }
     else if(STORG_light0State == 1)
     {
-        OLED_ShowChinese(8, 32, "《大门：开启》");
+        OLED_ShowChinese(8, 32, "《房门：开启》");
         OLED_ReverseArea(72, 32, 32, 16);
     }
     else if(STORG_light0State == 2)
@@ -1103,7 +1145,7 @@ void odisplay_door(void)
     
     
     OLED_Update();
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    vTaskDelay(800 / portTICK_PERIOD_MS);
 }
 
 void odisplay_room0(void)
@@ -1140,7 +1182,7 @@ void odisplay_room0(void)
     OLED_ReverseArea(72, 32, 32, 16);
     OLED_ReverseArea(72, 48, 32, 16);
     OLED_Update();
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    vTaskDelay(800 / portTICK_PERIOD_MS);
 
 }
 
@@ -1226,8 +1268,8 @@ void odisplay_live(void)
     }else{
         OLED_ShowChinese(64, 48, "获取失败");
         OLED_Update();
+        vTaskDelay(800 / portTICK_PERIOD_MS);
         return;
-        vTaskDelay(700 / portTICK_PERIOD_MS);
     }
 
     LOG_I("odisplay_live温湿度值：%s\r\n", var_th);
@@ -1242,7 +1284,7 @@ void odisplay_live(void)
             OLED_ReverseArea(64, 48, 128, 16);
             // OLED_UpdateArea(64, 48, 64, 16);
             OLED_Update();
-            vTaskDelay(700 / portTICK_PERIOD_MS);
+            vTaskDelay(600 / portTICK_PERIOD_MS);
         }
         
     }
@@ -1252,7 +1294,7 @@ void odisplay_live(void)
         OLED_ReverseArea(64, 48, 8 * strlen(var_th), 16);
         OLED_Update();
     }
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    vTaskDelay(800 / portTICK_PERIOD_MS);
 }
 
 void odisplay_controller(void)
@@ -1262,9 +1304,12 @@ void odisplay_controller(void)
 
     // door
     odisplay_door();
+    vTaskDelay(400 / portTICK_PERIOD_MS);
+
 
     // live
     odisplay_live();
+    vTaskDelay(400 / portTICK_PERIOD_MS);
 
     // room0
     odisplay_room0();
@@ -1276,6 +1321,8 @@ void oledplay_wrap(void* param)
     {
         // 执行传入的函数
         ((void (*)())param)();
+        
+        vTaskDelay(400 / portTICK_PERIOD_MS);
     }
 }
 
@@ -1519,11 +1566,11 @@ void create_server_task(void)
         xTaskCreate(toLink_task, (char*)"toLink_queue", TOLINK_STACK_SIZE, NULL, TOLINK_PRIORITY, &toLink_task_hd);
         
         // mqtt subcriber
-        xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
+        // xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
 
         // mqtt sensors states pub for deives
         // 
-        xTaskCreate(mqttP_task, (char *)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
+        // xTaskCreate(mqttP_task, (char *)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
 
 
         // mqtt publisher in e2prom  for controller
@@ -1545,7 +1592,11 @@ void create_server_task(void)
 
         // oled
         /*OLED一定要在循环中*/
-        xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        // xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+
+        // 仅测试阶段在这，正式时注视下面，使用上面的
+        xTaskCreate(oledplay_wrap, (char*)"oledplay_wrap", OLED_STACK_SIZE, odisplay_controller, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+
 
         // 数据读取显示
         // xTaskCreate(oledDisplay_test_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
@@ -1561,8 +1612,8 @@ void create_server_task(void)
     // dht11
     // xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
 
-    // adc
-    // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
+    // adc  接光照传感器，模拟值大于1500则打开灯光，否则关闭
+    xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
 
     // dig_read 人体要4.5v以上
     // xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
@@ -1575,7 +1626,7 @@ void create_server_task(void)
     // fingerprint  WARNNING:已知接口有冲突（探明IO23:dht11 ,IO24:sg90      这两fingerprint都要用
     // fingerprint  修改为：IO26:TX ,IO28:RX
     // 
-    xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
+    // xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
 
 
     // ----------------------------------------------------
