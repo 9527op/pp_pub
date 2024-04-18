@@ -22,8 +22,9 @@ extern uint16_t fingerID_Unlock;
 extern char *CONRRECT_MQTT_TOPIC;
 #define fingerID_END_STR "fingerID_END"                 //保证和main.c文件中的同名预定义的值相同
 
-
-
+// used in FPM383C_Identify
+void mqtt_pub_fingerPrint_state();
+extern void odisplay_door(void);
 // --------------------------------------------------------------------------
 // --------------------------------------------------------------------------
 // --------------------------------------------------------------------------
@@ -272,6 +273,8 @@ void FPM383C_Identify(void)
 
                 // FPM383C_ControlLED(PS_GreenLEDBuf, 1000);
                 STORG_openFingerprint = 1;
+                // 
+                odisplay_door();
                 mqtt_pub_fingerPrint_state();
 
 
@@ -298,6 +301,8 @@ void FPM383C_Identify(void)
 
                 // FPM383C_ControlLED(PS_RedLEDBuf, 1000);
                 STORG_openFingerprint = 2;
+                // 
+                odisplay_door();
                 mqtt_pub_fingerPrint_state();
 
                 bflb_gpio_init(led, GPIO_PIN_12, GPIO_OUTPUT);

@@ -78,6 +78,8 @@ uint8_t dig_read16_use = 0;
 uint8_t dig_read17_use = 0;
 uint8_t adc0_use = 0;
 uint8_t dht11_use = 0;
+// for switch_devices_task and mqttP_task using
+uint8_t inDebug = 0;
 
 // -------------------------------------------------------------------------------
 // -----------------------------状态变量-------------------------------------------
@@ -886,7 +888,6 @@ void switch_devices_task(void* param)
 
 
     // -------------------------------------
-    uint8_t inDebug = 0;
 
     while (1)
     {
@@ -1075,6 +1076,36 @@ void fingerprint_task(void* param)
 // ---------------------------------------------------------------------------------------------
 // oled
 
+void odisplay_door(void)
+{
+
+    OLED_Clear();
+    OLED_ShowChinese(16, 0, "状态（门口）");
+    OLED_ReverseArea(0, 0, 128, 16);
+
+    OLED_ShowString(0, 16, ">>>>>>>><<<<<<<<", OLED_8X16);
+    if (STORG_light0State == 0)
+    {
+        OLED_ShowChinese(8, 32, "《大门：关闭》");
+        OLED_ReverseArea(72, 32, 32, 16);
+    }
+    else if(STORG_light0State == 1)
+    {
+        OLED_ShowChinese(8, 32, "《大门：开启》");
+        OLED_ReverseArea(72, 32, 32, 16);
+    }
+    else if(STORG_light0State == 2)
+    {
+        OLED_ShowChinese(18, 32, "《认证失败》");
+    }
+    OLED_ShowString(0, 48, "<<<<<<<<>>>>>>>>", OLED_8X16);
+
+    
+    
+    OLED_Update();
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+}
+
 void odisplay_room0(void)
 {
     OLED_Clear();
@@ -1109,6 +1140,8 @@ void odisplay_room0(void)
     OLED_ReverseArea(72, 32, 32, 16);
     OLED_ReverseArea(72, 48, 32, 16);
     OLED_Update();
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
 }
 
 void odisplay_live(void)
@@ -1219,26 +1252,31 @@ void odisplay_live(void)
         OLED_ReverseArea(64, 48, 8 * strlen(var_th), 16);
         OLED_Update();
     }
+    vTaskDelay(500 / portTICK_PERIOD_MS);
 }
-
 
 void odisplay_controller(void)
 {
     // for controller
-    // 
+    //
 
+    // door
+    odisplay_door();
+
+    // live
+    odisplay_live();
+
+    // room0
+    odisplay_room0();
+}
+
+void oledplay_wrap(void* param)
+{
     while(1)
     {
-        // live
-        odisplay_live();
-        vTaskDelay(800 / portTICK_PERIOD_MS);
-
-        // room0
-        odisplay_room0();
-        vTaskDelay(800 / portTICK_PERIOD_MS);
-
+        // 执行传入的函数
+        ((void (*)())param)();
     }
-    
 }
 
 // ----------------------------------
@@ -1495,7 +1533,11 @@ void create_server_task(void)
 
         // oled
         /*OLED一定要在循环中*/
-        xTaskCreate(odisplay_controller, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        /*如果是设备端调用oledplay_wrap，并传入对应函数名为实参*/
+        /*参数有：odisplay_controller、odisplay_live、odisplay_door*/
+        xTaskCreate(oledplay_wrap, (char*)"oledplay_wrap", OLED_STACK_SIZE, odisplay_controller, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        
+        // xTaskCreate(odisplay_controller, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
     }
     else
     {
