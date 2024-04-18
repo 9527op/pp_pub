@@ -30,6 +30,11 @@ void init_dig(void)
     // output 18
     // 
     bflb_gpio_init(gpio_fan, GPIO_PIN_18, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_3);
+    //
+    //add IO11 IO13
+    bflb_gpio_init(gpio_fan, GPIO_PIN_11, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_3);
+    bflb_gpio_init(gpio_fan, GPIO_PIN_13, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_3);
+
 
 }
 
@@ -74,7 +79,7 @@ void start_dig(void)
     }  
     else
     {
-        LOG_I("gpio_dig is NULL\r\n");
+        LOG_I("gpio_dig is NULL(dig\r\n");
     }
 }
 
@@ -88,9 +93,71 @@ void end_dig(void)
     }
     else
     {
-        LOG_I("gpio_dig is NULL\r\n");
+        LOG_I("gpio_dig is NULL(dig\r\n");
     }
 }
+
+
+// for IO11 IO13
+
+void end_motor(void)
+{
+    // 输出低电平
+    if (gpio_dig != NULL)
+    {
+        LOG_I("end dig\r\n");
+        bflb_gpio_reset(gpio_fan, GPIO_PIN_11);
+        bflb_gpio_reset(gpio_fan, GPIO_PIN_13);
+    }
+    else
+    {
+        LOG_I("gpio_dig is NULL(motor\r\n");
+    }
+}
+
+void start_motor_clockwise(void)
+{
+    // IO11输出高电平
+    // IO13输出低电平
+    if (gpio_dig != NULL)
+    {
+        LOG_I("end dig\r\n");
+        bflb_gpio_set(gpio_fan, GPIO_PIN_11);
+        bflb_gpio_reset(gpio_fan, GPIO_PIN_13);
+
+        // stop
+        bflb_mtimer_delay_ms(3000);
+        end_motor();
+    }
+    else
+    {
+        LOG_I("gpio_dig is NULL(motor\r\n");
+    }
+}
+
+void start_motor_cclockwise(void)
+{
+    
+    // IO11输出低电平
+    // IO13输出高电平
+
+    if (gpio_dig != NULL)
+    {
+        LOG_I("end dig\r\n");
+        bflb_gpio_set(gpio_fan, GPIO_PIN_13);
+        bflb_gpio_reset(gpio_fan, GPIO_PIN_11);
+
+        // stop
+        bflb_mtimer_delay_ms(3000);
+        end_motor();
+    }
+    else
+    {
+        LOG_I("gpio_dig is NULL(motor\r\n");
+    }
+}
+
+
 
 
 #ifdef CONFIG_SHELL
@@ -101,5 +168,11 @@ SHELL_CMD_EXPORT_ALIAS(read_dig,read_dig,read the dig);
 
 SHELL_CMD_EXPORT_ALIAS(start_dig,start_dig,start the dig);
 SHELL_CMD_EXPORT_ALIAS(end_dig,end_dig,end the dig);
+// 
+// add IO11 IO13
+SHELL_CMD_EXPORT_ALIAS(start_motor_clockwise,start_motor_clockwise,start clockwise the motor);
+SHELL_CMD_EXPORT_ALIAS(start_motor_cclockwise,start_motor_cclockwise,start cclockwise the motor);
+SHELL_CMD_EXPORT_ALIAS(end_motor,end_motor,end the motor);
+
 
 #endif

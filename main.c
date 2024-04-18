@@ -986,11 +986,16 @@ void switch_devices_task(void* param)
             {
                 if(STORG_servo0State)
                 {
-                    pwm_sg90_turn_180();
+                    // pwm_sg90_turn_180();
+                    // 外设更换为motor
+                    start_motor_clockwise();
                 }
                 else
                 {
-                    pwm_sg90_turn_0();
+                    // pwm_sg90_turn_0();
+                    // 外设更换为motor
+                    start_motor_cclockwise();
+
                 }
                 STORG_servo0State_old = STORG_servo0State;
             }
