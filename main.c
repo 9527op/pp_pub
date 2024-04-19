@@ -1008,12 +1008,17 @@ void switch_devices_task(void* param)
                         // pwm_sg90_turn_180();
                         // 外设更换为motor
                         start_motor_clockwise();
+                        vTaskDelay(2000 / portTICK_PERIOD_MS);
+                        end_motor();
+
                     }
                     else
                     {
                         // pwm_sg90_turn_0();
                         // 外设更换为motor
                         start_motor_cclockwise();
+                        vTaskDelay(2000 / portTICK_PERIOD_MS);
+                        end_motor();
                     }
                 }
                 

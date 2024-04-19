@@ -124,8 +124,8 @@ void start_motor_clockwise(void)
         bflb_gpio_reset(gpio_fan, GPIO_PIN_13);
 
         // stop
-        bflb_mtimer_delay_ms(3000);
-        end_motor();
+        // bflb_mtimer_delay_ms(3000);
+        // end_motor();
     }
     else
     {
@@ -146,8 +146,8 @@ void start_motor_cclockwise(void)
         bflb_gpio_reset(gpio_fan, GPIO_PIN_11);
 
         // stop
-        bflb_mtimer_delay_ms(3000);
-        end_motor();
+        // bflb_mtimer_delay_ms(3000);
+        // end_motor();
     }
     else
     {
