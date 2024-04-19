@@ -312,6 +312,7 @@ void FPM383C_Identify(void)
                 memset(USART_ReceiveBuf, 0xFF, sizeof(USART_ReceiveBuf));
             }
             STORG_openFingerprint = 0;
+            mqtt_pub_fingerPrint_state();
         }
     }
 }
@@ -417,9 +418,13 @@ void mqtt_pub_fingerPrint_state()
         mqtt_publier_a_time(tmp_pub_topic, "1");
 
     }
-    else
+    else if(STORG_openFingerprint==2)
     {
         mqtt_publier_a_time(tmp_pub_topic, "2");
+    }
+    else
+    {
+        mqtt_publier_a_time(tmp_pub_topic, "0");
     }
 }
 
