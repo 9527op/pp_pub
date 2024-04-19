@@ -326,7 +326,7 @@ const char *ntp_server_ip[8] = {
 };
 
 // 服务器域名使用ntp_server_ip中的
-uint8_t start_ntp(void)
+int8_t start_ntp(void)
 {
     int sockfd, rc;
     struct addrinfo hints, *res = NULL;
