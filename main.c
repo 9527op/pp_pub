@@ -1632,7 +1632,7 @@ void test_task(void* param)
         // 每秒打印
         
         // LOG_W("本地时间：%d年%d月%d日 %d时%d分%d秒\r\n", local_time->tm_year + 1900, local_time->tm_mon + 1, local_time->tm_mday, local_time->tm_hour, local_time->tm_min, local_time->tm_sec);
-        vTaskDelay(990/portTICK_PERIOD_MS);
+        vTaskDelay(995/portTICK_PERIOD_MS);
         now += 1;
         if(++upNow_flash==upNow_watchdog)
         {
