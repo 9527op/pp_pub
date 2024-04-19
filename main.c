@@ -60,8 +60,8 @@
 // live 0
 // room0 1
 // door 2
-#define IN_WHERE 1
-#define IN_WHERE_STR "room0"
+#define IN_WHERE 2
+#define IN_WHERE_STR "door"
 
 // legal mqtt_s topic HEAD (using in sub_logic_func
 #define LEAGAL_SUB_TOPIC_HEAD "mytopicLegal"
@@ -1749,7 +1749,7 @@ void create_server_task(void)
         /*OLED一定要在循环中*/
         /*如果是设备端调用oledplay_wrap，并传入对应函数名为实参*/
         /*参数有：odisplay_controller、odisplay_live、odisplay_door*/
-        xTaskCreate(oledplay_wrap, (char*)"oledplay_wrap", OLED_STACK_SIZE, odisplay_room0, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        xTaskCreate(oledplay_wrap, (char*)"oledplay_wrap", OLED_STACK_SIZE, odisplay_door, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
         
         // xTaskCreate(odisplay_controller, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
     }
@@ -1780,7 +1780,7 @@ void create_server_task(void)
     // xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
 
     // adc  接光照传感器，模拟值大于1500则打开灯光，否则关闭
-    xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
+    // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
 
     // dig_read 人体要4.5v以上
     // xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
@@ -1793,12 +1793,12 @@ void create_server_task(void)
     // fingerprint  WARNNING:已知接口有冲突（探明IO23:dht11 ,IO24:sg90      这两fingerprint都要用
     // fingerprint  修改为：IO26:TX ,IO28:RX
     // 
-    // xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
+    xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
 
 
     //
     // switch devices
-    xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
+    // xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
 
 
 
