@@ -1177,17 +1177,17 @@ void odisplay_door(uint8_t semicolon)
     OLED_ReverseArea(0, 0, 128, 16);
 
     OLED_ShowString(0, 16, ">>>>>>>><<<<<<<<", OLED_8X16);
-    if (STORG_light0State == 0)
+    if (STORG_openFingerprint == 0)
     {
         OLED_ShowChinese(8, 32, "《房门：关闭》");
         OLED_ReverseArea(72, 32, 32, 16);
     }
-    else if(STORG_light0State == 1)
+    else if(STORG_openFingerprint == 1)
     {
         OLED_ShowChinese(8, 32, "《房门：开启》");
         OLED_ReverseArea(72, 32, 32, 16);
     }
-    else if(STORG_light0State == 2)
+    else if(STORG_openFingerprint == 2)
     {
         OLED_ShowChinese(18, 32, "《认证失败》");
     }
