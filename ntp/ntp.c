@@ -14,28 +14,27 @@
 
 #include "utils_getopt.h"
 
-
 #define DBG_TAG "NTP"
 #include "log.h"
 
 extern uint8_t wifi_state;
-#define   NTP_STORAGE   "THE_NTP"
-#define   EAST_EIGHT   28800
+#define NTP_STORAGE "THE_NTP"
+#define EAST_EIGHT 28800
 
-#define   NTP_PORT   123
-#define   TIME_PORT  37
-#define   NTP_SERVER_IP  "cn.pool.ntp.org"
+#define NTP_PORT 123
+#define TIME_PORT 37
+#define NTP_SERVER_IP "cn.pool.ntp.org"
 // #define   NTP_SERVER_IP  "ntp6.aliyun.com"
 
-#define   NTP_PORT_STR   "123"
-#define   NTPV1       "NTP/V1"
+#define NTP_PORT_STR "123"
+#define NTPV1 "NTP/V1"
 #define NTPV2 "NTP/V2"
 
 #define NTPV3 "NTP/V3"
 #define NTPV4 "NTP/V4"
 #define TIME "TIME/UDP"
 
-#define   NTP_PCK_LEN   48
+#define NTP_PCK_LEN 48
 
 #define LI 0
 #define VN 3
@@ -47,7 +46,6 @@ extern uint8_t wifi_state;
 #define JAN_1970 0x83aa7e80 /* 1900 年～1970 年之间的时间秒数 */
 #define NTPFRAC(x) (4294 * (x) + ((1981 * (x)) >> 11))
 #define USEC(x) (((x) >> 12) - 759 * ((((x) >> 10) + 32768) >> 16))
-
 
 typedef struct _ntp_time
 {
