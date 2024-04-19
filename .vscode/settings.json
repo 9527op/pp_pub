@@ -23,7 +23,15 @@
         "xstring": "c",
         "xutility": "c",
         "log.h": "c",
-        "mqtt.h": "c"
+        "mqtt.h": "c",
+        "mlwip_http.h": "c",
+        "errno.h": "c",
+        "types.h": "c",
+        "socket.h": "c",
+        "time.h": "c",
+        "timeb.h": "c",
+        "utils_getopt.h": "c",
+        "netdb.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

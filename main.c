@@ -49,6 +49,8 @@
 #include "log.h"
 
 
+
+
 // 全部
 // 设置为0,语音控制端设置为1
 // 最终影响sub_logic_func函数中是否逻辑处理，switch_device分支（家具端使用，非switch_device分支（语音控制端使用
@@ -117,11 +119,13 @@ volatile uint16_t fingerID_Unlock = 0xff;
 #define fingerID_END_STR "fingerID_END"
 
 
+volatile struct tm *local_time;
+volatile uint8_t local_init = 0;
 
+// -------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------
 
-// -------------------------------------------------------------------------------
-// -------------------------------------------------------------------------------
-// -------------------------------------------------------------------------------
 
 
 
@@ -242,8 +246,8 @@ void i2c0_init(void)
 #define FINGERPRINT_STACK_SIZE  (1024*2)
 #define FINGERPRINT_PRIORITY (4)
 // 
-#define TEST_STACK_SIZE  (1024)
-#define TEST_PRIORITY (2)
+#define TEST_STACK_SIZE  (1024*2)
+#define TEST_PRIORITY (3)
 
 
 
@@ -502,15 +506,15 @@ sub_logic_func_end:
 // ---------------------------------------------------
 // ---------------------------------------------------
 // ---------------------------------------------------
-char* intToChar(uint32_t oval)
+char* intToChar(uint64_t oval)
 {
     uint8_t gen=0;
     uint8_t nvaln=0;
-    char* nval = (char*) malloc(16);
-    char* rnval = (char*) malloc(16);
+    char* nval = (char*) malloc(50);
+    char* rnval = (char*) malloc(50);
 
-    memset(nval,'\0',16);
-    memset(rnval,'\0',16);
+    memset(nval,'\0',50);
+    memset(rnval,'\0',50);
 
     LOG_I("intToChar oval:%d\r\n",oval);
 
@@ -1123,11 +1127,38 @@ void fingerprint_task(void* param)
 // ---------------------------------------------------------------------------------------------
 // oled
 
-void odisplay_door(void)
+void odisplay_door(uint8_t semicolon)
 {
 
+    char bufTime[50];
+    memset(bufTime,0,50);
+
     OLED_Clear();
-    OLED_ShowChinese(16, 0, "状态（门口）");
+
+    if(local_init)
+    {
+        if(semicolon)
+        {
+            sprintf(bufTime, "%02d:%02d", local_time->tm_hour, local_time->tm_min);
+        }
+        else
+        {
+            sprintf(bufTime, "%02d %02d", local_time->tm_hour, local_time->tm_min);
+        }
+
+        OLED_ShowChinese(1, 0, "状态（门口）");
+        OLED_ShowString(97, 8, bufTime, OLED_6X8);
+    }
+    else
+    {
+        OLED_ShowChinese(16, 0, "状态（门口）");
+    }
+
+    
+
+    
+    
+    
     OLED_ReverseArea(0, 0, 128, 16);
 
     OLED_ShowString(0, 16, ">>>>>>>><<<<<<<<", OLED_8X16);
@@ -1153,10 +1184,31 @@ void odisplay_door(void)
     vTaskDelay(800 / portTICK_PERIOD_MS);
 }
 
-void odisplay_room0(void)
+void odisplay_room0(uint8_t semicolon)
 {
+    char bufTime[50];
+    memset(bufTime,0,50);
+
     OLED_Clear();
-    OLED_ShowChinese(16, 0, "状态（卧室）");
+
+    if(local_init)
+    {
+        if(semicolon)
+        {
+            sprintf(bufTime, "%02d:%02d", local_time->tm_hour, local_time->tm_min);
+        }
+        else
+        {
+            sprintf(bufTime, "%02d %02d", local_time->tm_hour, local_time->tm_min);
+        }
+
+        OLED_ShowChinese(1, 0, "状态（卧室）");
+        OLED_ShowString(97, 8, bufTime, OLED_6X8);
+    }
+    else
+    {
+        OLED_ShowChinese(16, 0, "状态（卧室）");
+    }
 
     if (STORG_light0State)
     {
@@ -1191,7 +1243,7 @@ void odisplay_room0(void)
 
 }
 
-void odisplay_live(void)
+void odisplay_live(uint8_t semicolon)
 {
     uint8_t local_temperature = 0xff;
     uint8_t local_humidity = 0xff;
@@ -1202,20 +1254,40 @@ void odisplay_live(void)
     char *var_th_ptr = NULL;
 
     uint8_t debug = 0;
+    
+    // --------------------------------------------------
 
+    char bufTime[50];
+    memset(bufTime,0,50);
 
     OLED_Clear();
 
 
-    if ((STORG_temperature != 0xff && STORG_humidity != 0xff) || debug)
+    if(local_init)
     {
-        local_temperature = STORG_temperature;
-        local_humidity = STORG_humidity;
-        local_temperature_decimal = STORG_temperature_decimal;
-        local_humidity_decimal = STORG_humidity_decimal;
+        if(semicolon)
+        {
+            sprintf(bufTime, "%02d:%02d", local_time->tm_hour, local_time->tm_min);
+        }
+        else
+        {
+            sprintf(bufTime, "%02d %02d", local_time->tm_hour, local_time->tm_min);
+        }
+
+        OLED_ShowChinese(1, 0, "状态（客厅）");
+        OLED_ShowString(97, 8, bufTime, OLED_6X8);
+    }
+    else
+    {
+        OLED_ShowChinese(16, 0, "状态（客厅）");
     }
 
-    OLED_ShowChinese(16, 0, "状态（客厅）");
+
+
+
+
+
+    
 
     if (STORG_light1State)
     {
@@ -1242,6 +1314,16 @@ void odisplay_live(void)
 
     // 温湿度传感数据
     OLED_ShowChinese(0, 48, "温湿度：");
+
+    // 
+    // 数据更新
+    if ((STORG_temperature != 0xff && STORG_humidity != 0xff) || debug)
+    {
+        local_temperature = STORG_temperature;
+        local_humidity = STORG_humidity;
+        local_temperature_decimal = STORG_temperature_decimal;
+        local_humidity_decimal = STORG_humidity_decimal;
+    }
     
     if((local_temperature != 0xff && local_humidity != 0xff) || debug)
     {
@@ -1302,31 +1384,36 @@ void odisplay_live(void)
     vTaskDelay(800 / portTICK_PERIOD_MS);
 }
 
-void odisplay_controller(void)
+void odisplay_controller(uint8_t semicolon)
 {
     // for controller
     //
 
+    // 无视semicolon，一直显示
+
     // door
-    odisplay_door();
+    odisplay_door(1);
     vTaskDelay(400 / portTICK_PERIOD_MS);
 
 
     // live
-    odisplay_live();
+    odisplay_live(1);
     vTaskDelay(400 / portTICK_PERIOD_MS);
 
     // room0
-    odisplay_room0();
+    odisplay_room0(1);
 }
 
 void oledplay_wrap(void* param)
 {
+    // 时间中的分号
+    uint8_t display_semicolon = 1;
     while(1)
     {
         // 执行传入的函数
-        ((void (*)())param)();
-        
+        ((void (*)())param)(display_semicolon);
+        display_semicolon = !display_semicolon;
+
         vTaskDelay(400 / portTICK_PERIOD_MS);
     }
 }
@@ -1522,10 +1609,58 @@ void oledDisplay_test_task(void* param)
 
 void test_task(void* param)
 {
+    uint16_t upNow_watchdog = 3600;
+    uint16_t upNow_flash = 0;
+
+    char* upNow_ptr = NULL;
+    time_t now = 0;
+
+    now = getLocalTime_ntp();
+    local_time = localtime(&now);
+    local_init = 1;
+
+    while (start_ntp() != 0)
+    {
+        vTaskDelay(3000/portTICK_PERIOD_MS);
+    }
+    now = getLocalTime_ntp();
+    local_time = localtime(&now);
+    local_init = 1;
+
+    while(1)
+    {
+        // 每秒打印
+        
+        // LOG_W("本地时间：%d年%d月%d日 %d时%d分%d秒\r\n", local_time->tm_year + 1900, local_time->tm_mon + 1, local_time->tm_mday, local_time->tm_hour, local_time->tm_min, local_time->tm_sec);
+        vTaskDelay(990/portTICK_PERIOD_MS);
+        now += 1;
+        if(++upNow_flash==upNow_watchdog)
+        {
+            upNow_flash=0;
+            upNow_ptr = intToChar(now + 3600);
+            flash_erase_set("THE_NTP", upNow_ptr);
+
+            free(upNow_ptr);
+            upNow_ptr=NULL;
+        }
+        local_time = localtime(&now);
+    }
+
+
+
+
+
+
+
+
+    return;
+
     uint8_t oled_debug = 1;
 
     while(1)
     {
+
+
         if(wifi_state && !oled_debug)
         {
             mqtt_publier_a_time("mytopicLegal/lzbUser/theRoom/aDevice","1");
@@ -1538,7 +1673,7 @@ void test_task(void* param)
         }
         else
         {
-            odisplay_controller();
+            odisplay_controller(1);
         }
         
         vTaskDelay(1800/portTICK_PERIOD_MS);
@@ -1597,10 +1732,10 @@ void create_server_task(void)
 
         // oled
         /*OLED一定要在循环中*/
-        // xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        xTaskCreate(oldeDisplay_ap_task, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
 
         // 仅测试阶段在这，正式时注视下面，使用上面的
-        xTaskCreate(oledplay_wrap, (char*)"oledplay_wrap", OLED_STACK_SIZE, odisplay_controller, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        // xTaskCreate(oledplay_wrap, (char*)"oledplay_wrap", OLED_STACK_SIZE, odisplay_controller, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
 
 
         // 数据读取显示
@@ -1618,7 +1753,7 @@ void create_server_task(void)
     // xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
 
     // adc  接光照传感器，模拟值大于1500则打开灯光，否则关闭
-    xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
+    // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
 
     // dig_read 人体要4.5v以上
     // xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);
@@ -1642,7 +1777,8 @@ void create_server_task(void)
 
 
     // test
-    // xTaskCreate(test_task, (char*)"test_task", TEST_STACK_SIZE, NULL, TEST_PRIORITY, &test_task_hd);
+    // 现在给NTP使用
+    xTaskCreate(test_task, (char*)"test_task", TEST_STACK_SIZE, NULL, TEST_PRIORITY, &test_task_hd);
 
 
 }

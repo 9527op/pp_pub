@@ -42,7 +42,8 @@ target_sources(app PRIVATE
                    sensors/dht11.c
                    sensors/dig.c
                    light/light.c
-                   fpm383/fpm383.c)
+                   fpm383/fpm383.c
+                   ntp/ntp.c)
 
 
 
