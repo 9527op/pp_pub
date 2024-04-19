@@ -54,7 +54,7 @@
 // 全部
 // 设置为0,语音控制端设置为1
 // 最终影响sub_logic_func函数中是否逻辑处理，switch_device分支（家具端使用，非switch_device分支（语音控制端使用
-#define CONTROLLER 1
+#define CONTROLLER 0
 #define JUST_USING_I2C0 0
 
 // live 0
@@ -73,7 +73,7 @@
 #define LEAGAL_PUB_TOPIC_USER "lzbUser"
 
 
-//mqttP_task using
+//mqttP_task using for Sensors
 // 
 volatile char *CONRRECT_MQTT_TOPIC = NULL;
 uint8_t dig_read16_use = 0;
@@ -777,7 +777,7 @@ void mqttP_task(void* param)
         }
         
 
-        vTaskDelay(800/portTICK_PERIOD_MS);
+        vTaskDelay(1200/portTICK_PERIOD_MS);
     }
 
 }
@@ -1718,7 +1718,7 @@ void create_server_task(void)
 
         // mqtt sensors states pub for deives
         // 
-        // xTaskCreate(mqttP_task, (char *)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
+        xTaskCreate(mqttP_task, (char *)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
 
 
         // mqtt publisher in e2prom  for controller
@@ -1730,7 +1730,7 @@ void create_server_task(void)
         /*OLED一定要在循环中*/
         /*如果是设备端调用oledplay_wrap，并传入对应函数名为实参*/
         /*参数有：odisplay_controller、odisplay_live、odisplay_door*/
-        xTaskCreate(oledplay_wrap, (char*)"oledplay_wrap", OLED_STACK_SIZE, odisplay_controller, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        xTaskCreate(oledplay_wrap, (char*)"oledplay_wrap", OLED_STACK_SIZE, odisplay_live, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
         
         // xTaskCreate(odisplay_controller, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
     }
@@ -1753,12 +1753,12 @@ void create_server_task(void)
 
     // 控制端e2prom数据读取
     // e2prom
-    xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
+    // xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
 
     // 下面默认能打开的是有关于传感器一类
 
     // dht11
-    // xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
+    xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
 
     // adc  接光照传感器，模拟值大于1500则打开灯光，否则关闭
     // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
@@ -1779,7 +1779,7 @@ void create_server_task(void)
 
     //
     // switch devices
-    // xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
+    xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
 
 
 
@@ -1811,7 +1811,7 @@ int main(void)
 	/*OLED初始化 和 e2prom msgs初始化*/
 
 	OLED_Init();
-	e2prom_i2cMsgs_init();
+	// e2prom_i2cMsgs_init();
 
 
     // 
