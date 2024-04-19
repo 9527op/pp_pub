@@ -60,8 +60,8 @@
 // live 0
 // room0 1
 // door 2
-#define IN_WHERE 0
-#define IN_WHERE_STR "live"
+#define IN_WHERE 1
+#define IN_WHERE_STR "room0"
 
 // legal mqtt_s topic HEAD (using in sub_logic_func
 #define LEAGAL_SUB_TOPIC_HEAD "mytopicLegal"
@@ -81,7 +81,7 @@ uint8_t dig_read17_use = 0;
 uint8_t adc0_use = 0;
 uint8_t dht11_use = 1;
 // for switch_devices_task and mqttP_task using
-uint8_t inDebug = 1;
+uint8_t inDebug = 0;
 
 // -------------------------------------------------------------------------------
 // -----------------------------状态变量-------------------------------------------
@@ -90,7 +90,7 @@ uint8_t inDebug = 1;
 // e2prom read
 // switch devices
 // 
-volatile uint8_t STORG_servo0State = 0;     //卧室窗帘  room0
+volatile uint8_t STORG_servo0State = 1;     //卧室窗帘  room0
 volatile uint8_t STORG_fan0State = 0;       //卧室风扇  room0
 volatile uint8_t STORG_fan1State = 0;       //客厅风扇  live
 volatile uint8_t STORG_light0State = 0;     //卧室灯 room0
@@ -99,6 +99,7 @@ volatile uint8_t STORG_light1State = 0;     //客厅灯 live
 // adc
 volatile uint8_t STORG_adc0Cha = 0;
 volatile int32_t STORG_adc0Val = 0;
+volatile int32_t STORG_switchLight = 1;
 
 // dht11
 volatile uint8_t STORG_temperature = 0xff;       //温度      ------------------>temperature_integer
@@ -304,7 +305,7 @@ uint32_t charToInt(char *oval)
 
 // set dropback in controller ; theRoom is debugger use
 // const char* sub_rooms[]={"theRoom","room0","live","dropback"};
-const char *sub_switch_devices[] = {"aDevice", "light0", "fan0", "servo0", "light1","fan1"};
+const char *sub_switch_devices[] = {"aDevice", "light0", "fan0", "servo0", "light1","fan1","switchLight"};
 
 void sub_logic_func(char* topic_key,char* topic_val)
 {
@@ -411,6 +412,10 @@ void sub_logic_func(char* topic_key,char* topic_val)
                         STORG_fan1State = val;
                         break;
                     case 6:
+                        /* switchLight */
+                        STORG_switchLight = val;
+                        break;
+                    case 7:
                         /* null */
                         break;
                     default:
@@ -873,43 +878,48 @@ void adc_task(void* param)
             taskYIELD();
         }
 
-        LOG_I("just light in adc_task\r\n");
-        // 判断是否启动灯光
-        switch (IN_WHERE)
+
+        if(STORG_switchLight)
         {
-            // live 0
-            // room0 1
-            // STORG_light0State = 0;     //卧室灯 room0
-            // STORG_light1State = 0;     // 客厅灯 live
-        case 0:
-            if (STORG_adc0Val < watchDog_adc)
+            LOG_I("just light in adc_task\r\n");
+            // 判断是否启动灯光
+            switch (IN_WHERE)
             {
-                STORG_light1State = 0;
-                end_rgb();
-            }
-            else
-            {
-                STORG_light1State = 1;
-                start_rgb();
-            }
-            break;
+                // live 0
+                // room0 1
+                // STORG_light0State = 0;     //卧室灯 room0
+                // STORG_light1State = 0;     // 客厅灯 live
+            case 0:
+                if (STORG_adc0Val < watchDog_adc)
+                {
+                    STORG_light1State = 0;
+                    // end_rgb();
+                }
+                else
+                {
+                    STORG_light1State = 1;
+                    // start_rgb();
+                }
+                break;
 
-        case 1:
-            if (STORG_adc0Val < watchDog_adc)
-            {
-                STORG_light0State = 0;
-                end_rgb();
-            }
-            else
-            {
-                STORG_light0State = 1;
-                start_rgb();
-            }
-            break;
+            case 1:
+                if (STORG_adc0Val < watchDog_adc)
+                {
+                    STORG_light0State = 0;
+                    // end_rgb();
+                }
+                else
+                {
+                    STORG_light0State = 1;
+                    // start_rgb();
+                }
+                break;
 
-        default:
-            break;
+            default:
+                break;
+            }
         }
+       
 
         vTaskDelay(400/portTICK_PERIOD_MS);
     }
@@ -989,22 +999,26 @@ void switch_devices_task(void* param)
                 }
                 STORG_light0State_old = STORG_light0State;
             }
-            if (STORG_servo0State_old != STORG_servo0State || inDebug)
+            if (STORG_servo0State_old != STORG_servo0State)
             {
-                if(STORG_servo0State)
+                if(STORG_servo0State_old!=2)
                 {
-                    // pwm_sg90_turn_180();
-                    // 外设更换为motor
-                    start_motor_clockwise();
+                    if (STORG_servo0State)
+                    {
+                        // pwm_sg90_turn_180();
+                        // 外设更换为motor
+                        start_motor_clockwise();
+                    }
+                    else
+                    {
+                        // pwm_sg90_turn_0();
+                        // 外设更换为motor
+                        start_motor_cclockwise();
+                    }
                 }
-                else
-                {
-                    // pwm_sg90_turn_0();
-                    // 外设更换为motor
-                    start_motor_cclockwise();
-
-                }
+                
                 STORG_servo0State_old = STORG_servo0State;
+                // STORG_servo0State = 2;
             }
             if (STORG_fan0State_old != STORG_fan0State || inDebug)
             {
@@ -1730,7 +1744,7 @@ void create_server_task(void)
         /*OLED一定要在循环中*/
         /*如果是设备端调用oledplay_wrap，并传入对应函数名为实参*/
         /*参数有：odisplay_controller、odisplay_live、odisplay_door*/
-        xTaskCreate(oledplay_wrap, (char*)"oledplay_wrap", OLED_STACK_SIZE, odisplay_live, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        xTaskCreate(oledplay_wrap, (char*)"oledplay_wrap", OLED_STACK_SIZE, odisplay_room0, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
         
         // xTaskCreate(odisplay_controller, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
     }
@@ -1758,10 +1772,10 @@ void create_server_task(void)
     // 下面默认能打开的是有关于传感器一类
 
     // dht11
-    xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
+    // xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
 
     // adc  接光照传感器，模拟值大于1500则打开灯光，否则关闭
-    // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
+    xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
 
     // dig_read 人体要4.5v以上
     // xTaskCreate(digRead_task, (char*)"digRead_task", DIG_READ_STACK_SIZE, NULL, DIG_READ_PRIORITY, &digRead_task_hd);

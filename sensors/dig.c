@@ -21,26 +21,24 @@ void init_dig(void)
     gpio_dig = bflb_device_get_by_name("gpio");
     gpio_fan = bflb_device_get_by_name("gpio");
 
-    // input 16,17
+    // input 16,17  read
     // 
     bflb_gpio_init(gpio_dig, GPIO_PIN_16, GPIO_INPUT | GPIO_PULLDOWN | GPIO_SMT_EN | GPIO_DRV_0);
-
     bflb_gpio_init(gpio_dig, GPIO_PIN_17, GPIO_INPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
 
-    // output 18
+    // output 18    fan
     // 
     bflb_gpio_init(gpio_fan, GPIO_PIN_18, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_3);
     //
-    //add IO11 IO13
+    //add IO11 IO13 motor
     bflb_gpio_init(gpio_fan, GPIO_PIN_11, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_3);
     bflb_gpio_init(gpio_fan, GPIO_PIN_13, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_3);
-
-
+    // 
 }
 
 
 
-// for IO16,IO17
+// for IO16,IO17    read
 void read_dig(void)
 {
     if (gpio_dig != NULL)
@@ -68,7 +66,7 @@ void read_dig(void)
 
 
 
-// for IO18
+// for IO18 IO19    fan
 void start_dig(void)
 {
     // 输出高电平
@@ -98,7 +96,7 @@ void end_dig(void)
 }
 
 
-// for IO11 IO13
+// for IO11 IO13    motor
 
 void end_motor(void)
 {
