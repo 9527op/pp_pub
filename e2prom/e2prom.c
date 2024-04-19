@@ -35,6 +35,7 @@ extern uint8_t STORG_light1State;   //客厅灯
 // adc
 extern uint8_t STORG_adc0Cha;
 extern int32_t STORG_adc0Val;
+extern int32_t STORG_switchLight;
 
 // 温湿度写入
 extern uint8_t STORG_temperature;       //温度      ------------------>dht11_temperature
@@ -46,6 +47,7 @@ extern uint8_t STORG_humidity_decimal;          //湿度      ------------------
 
 // 指纹fingerprint
 extern uint8_t STORG_openFingerprint; // 通过mqtt发送
+
 
 
 // -------------------------------------------------------
@@ -352,11 +354,31 @@ void e2prom_read_0xA0(void)
     // 0xA4    卧室窗帘
     // 0xAB    客厅风扇
 
-    LOG_W("STORG_fan0State:%02x\r\n", STORG_fan0State);
-    LOG_W("STORG_fan1State:%02x\r\n", STORG_fan1State);
-    LOG_W("STORG_light0State:%02x\r\n", STORG_light0State);
-    LOG_W("STORG_light1State:%02x\r\n", STORG_light1State);
-    LOG_W("STORG_servo0State:%02x\r\n", STORG_servo0State);
+    // LOG_W("STORG_fan0State:%02x\r\n", STORG_fan0State);
+    // LOG_W("STORG_fan1State:%02x\r\n", STORG_fan1State);
+    // LOG_W("STORG_light0State:%02x\r\n", STORG_light0State);
+    // LOG_W("STORG_light1State:%02x\r\n", STORG_light1State);
+    // LOG_W("STORG_servo0State:%02x\r\n", STORG_servo0State);
+    // LOG_W("STORG_switchLight:%02x\r\n", STORG_switchLight);
+
+    if (e2prom_recData[14] == 0 || e2prom_recData[14] == 1)
+    {
+        if (wifi_state)
+        {
+            STORG_switchLight = e2prom_recData[14];
+            strcpy(temp_pub_topic, correct_pub_topic);
+            strcat(temp_pub_topic, "/room0/switchLight");
+
+            if (STORG_switchLight)
+            {
+                mqtt_publier_a_time(temp_pub_topic, "1");
+            }
+            else
+            {
+                mqtt_publier_a_time(temp_pub_topic, "0");
+            }
+        }
+    }
 
     if (e2prom_recData[1] == 0 || e2prom_recData[1] == 1)
     {
@@ -452,6 +474,7 @@ void e2prom_read_0xA0(void)
             }
         }
     }
+
 
     // set the 0xA0 to 0xff
     if (e2prom_recData[0] != watch_dog_0xA0)

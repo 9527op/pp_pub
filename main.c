@@ -99,6 +99,8 @@ volatile uint8_t STORG_light1State = 0;     //客厅灯 live
 // adc
 volatile uint8_t STORG_adc0Cha = 0;
 volatile int32_t STORG_adc0Val = 0;
+volatile int32_t STORG_switchLight = 1;
+
 
 // dht11
 volatile uint8_t STORG_temperature = 0xff;       //温度      ------------------>temperature_integer
@@ -304,7 +306,7 @@ uint32_t charToInt(char *oval)
 
 // set dropback in controller ; theRoom is debugger use
 // const char* sub_rooms[]={"theRoom","room0","live","dropback"};
-const char *sub_switch_devices[] = {"aDevice", "light0", "fan0", "servo0", "light1","fan1"};
+const char *sub_switch_devices[] = {"aDevice", "light0", "fan0", "servo0", "light1","fan1","switchLight"};
 
 void sub_logic_func(char* topic_key,char* topic_val)
 {
@@ -411,6 +413,10 @@ void sub_logic_func(char* topic_key,char* topic_val)
                         STORG_fan1State = val;
                         break;
                     case 6:
+                        /* switchLight */
+                        STORG_switchLight = val;
+                        break;
+                    case 7:
                         /* null */
                         break;
                     default:
@@ -873,43 +879,49 @@ void adc_task(void* param)
             taskYIELD();
         }
 
-        LOG_I("just light in adc_task\r\n");
-        // 判断是否启动灯光
-        switch (IN_WHERE)
+       
+
+        if(STORG_switchLight)
         {
-            // live 0
-            // room0 1
-            // STORG_light0State = 0;     //卧室灯 room0
-            // STORG_light1State = 0;     // 客厅灯 live
-        case 0:
-            if (STORG_adc0Val < watchDog_adc)
+            LOG_I("just light in adc_task\r\n");
+            // 判断是否启动灯光
+            switch (IN_WHERE)
             {
-                STORG_light1State = 0;
-                end_rgb();
-            }
-            else
-            {
-                STORG_light1State = 1;
-                start_rgb();
-            }
-            break;
+                // live 0
+                // room0 1
+                // STORG_light0State = 0;     //卧室灯 room0
+                // STORG_light1State = 0;     // 客厅灯 live
+            case 0:
+                if (STORG_adc0Val < watchDog_adc)
+                {
+                    STORG_light1State = 0;
+                    // end_rgb();
+                }
+                else
+                {
+                    STORG_light1State = 1;
+                    // start_rgb();
+                }
+                break;
 
-        case 1:
-            if (STORG_adc0Val < watchDog_adc)
-            {
-                STORG_light0State = 0;
-                end_rgb();
-            }
-            else
-            {
-                STORG_light0State = 1;
-                start_rgb();
-            }
-            break;
+            case 1:
+                if (STORG_adc0Val < watchDog_adc)
+                {
+                    STORG_light0State = 0;
+                    // end_rgb();
+                }
+                else
+                {
+                    STORG_light0State = 1;
+                    // start_rgb();
+                }
+                break;
 
-        default:
-            break;
+            default:
+                break;
+            }
         }
+        
 
         vTaskDelay(400/portTICK_PERIOD_MS);
     }
@@ -1213,14 +1225,22 @@ void odisplay_room0(uint8_t semicolon)
         OLED_ShowChinese(16, 0, "状态（卧室）");
     }
 
-    if (STORG_light0State)
+    if(STORG_switchLight==1 && CONTROLLER)
     {
-        OLED_ShowChinese(24, 16, "灯光：启动");
+        OLED_ShowChinese(24, 16, "灯光：自动");
     }
     else
     {
-        OLED_ShowChinese(24, 16, "灯光：关闭");
+        if (STORG_light0State)
+        {
+            OLED_ShowChinese(24, 16, "灯光：启动");
+        }
+        else
+        {
+            OLED_ShowChinese(24, 16, "灯光：关闭");
+        }
     }
+    
     if (STORG_fan0State)
     {
         OLED_ShowChinese(24, 32, "风扇：启动");
