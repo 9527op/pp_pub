@@ -81,7 +81,7 @@ uint8_t dig_read17_use = 0;
 uint8_t adc0_use = 0;
 uint8_t dht11_use = 1;
 // for switch_devices_task and mqttP_task using
-uint8_t inDebug = 1;
+uint8_t inDebug = 0;
 
 // -------------------------------------------------------------------------------
 // -----------------------------状态变量-------------------------------------------
