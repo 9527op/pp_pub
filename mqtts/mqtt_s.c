@@ -280,11 +280,11 @@ static void mqtt_subscriber_a_topic(char *topic)
     }
 
     //
-    // up msg send
-    if (firstUp_ptr != NULL)
-    {
-        mqtt_publier_a_time(firstUp_ptr, "1");
-    }
+    // up msg send  but not in door
+    // if (firstUp_ptr != NULL)
+    // {
+    //     mqtt_publier_a_time(firstUp_ptr, "1");
+    // }
     while(1)
     {
         vTaskDelay(100/portTICK_PERIOD_MS);
