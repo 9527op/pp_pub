@@ -587,6 +587,17 @@ void mqttS_task(void* param)
     strcpy(topic_target,LEAGAL_SUB_TOPIC_HEAD);
     strcat(topic_target,"/#");
 
+    char up_pub_topic[128];
+    memset(up_pub_topic, '\0', sizeof(tmp_pub_topic) / sizeof(tmp_pub_topic[0]));
+    strcpy(up_pub_topic, LEAGAL_PUB_TOPIC_HEAD);
+    strcat(up_pub_topic, "/");
+    strcat(up_pub_topic, LEAGAL_PUB_TOPIC_USER);
+    strcat(up_pub_topic, "/");
+    strcat(up_pub_topic, IN_WHERE_STR);
+    strcat(up_pub_topic, "/");
+    strcat(up_pub_topic, "up");
+
+
     while(1)
     {
         LOG_I("to mqttS_task in %d\r\n", wifi_state);
@@ -597,6 +608,10 @@ void mqttS_task(void* param)
             mqtt_sub_start(topic_target);
             had_init_mqtt_sub = 1;
             LOG_I("to init_mqtt_subttS_task\r\n");
+
+            //
+            // up msg send
+            mqtt_publier_a_time(up_pub_topic, "1");
         }
         else
         {
