@@ -729,7 +729,7 @@ void mqttP_task(void* param)
 
                 val_ptr = intToChar(STORG_temperature);
                 mqtt_publier_a_time(tmp_pub_topic, val_ptr);
-                STORG_temperature_old = STORG_temperature;
+                // STORG_temperature_old = STORG_temperature;
 
                 free(val_ptr);
                 val_ptr = NULL;
@@ -742,7 +742,7 @@ void mqttP_task(void* param)
 
                 val_ptr = intToChar(STORG_humidity);
                 mqtt_publier_a_time(tmp_pub_topic, val_ptr);
-                STORG_humidity_old = STORG_humidity;
+                // STORG_humidity_old = STORG_humidity;
 
                 free(val_ptr);
                 val_ptr = NULL;
@@ -756,7 +756,7 @@ void mqttP_task(void* param)
 
                 val_ptr = intToChar(STORG_temperature_decimal);
                 mqtt_publier_a_time(tmp_pub_topic, val_ptr);
-                STORG_temperature_decimal_old = STORG_temperature_decimal;
+                // STORG_temperature_decimal_old = STORG_temperature_decimal;
 
                 free(val_ptr);
                 val_ptr = NULL;
@@ -769,7 +769,7 @@ void mqttP_task(void* param)
 
                 val_ptr = intToChar(STORG_humidity_decimal);
                 mqtt_publier_a_time(tmp_pub_topic, val_ptr);
-                STORG_humidity_decimal_old = STORG_humidity_decimal;
+                // STORG_humidity_decimal_old = STORG_humidity_decimal;
 
                 free(val_ptr);
                 val_ptr = NULL;
