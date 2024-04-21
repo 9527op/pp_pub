@@ -16,7 +16,7 @@
 // legal mqtt_s user (using in sub_logic_func
 #define LEAGAL_PUB_TOPIC_USER "lzbUser"
 
-int16_t first_read = 1;
+volatile uint8_t first_read = 1;
 
 // ------------------------------------------
 extern struct bflb_device_s *i2c1;

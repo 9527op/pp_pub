@@ -307,6 +307,8 @@ uint32_t charToInt(char *oval)
 // set dropback in controller ; theRoom is debugger use
 // const char* sub_rooms[]={"theRoom","room0","live","dropback"};
 const char *sub_switch_devices[] = {"aDevice", "light0", "fan0", "servo0", "light1","fan1","switchLight"};
+extern uint8_t first_read;
+
 
 void sub_logic_func(char* topic_key,char* topic_val)
 {
@@ -355,6 +357,12 @@ void sub_logic_func(char* topic_key,char* topic_val)
 
     if (!strcmp(key_path[0], LEAGAL_SUB_TOPIC_HEAD) && !strcmp(key_path[1], LEAGAL_SUB_TOPIC_USER))
     {
+        // when a device up
+        if (!strcmp(key_path[i_path - 1], "up"))
+        {
+            first_read = 1;
+            goto sub_logic_func_end;
+        }
         //
         // the val is 1 or 0 switch device
         if (strlen(topic_val) == 1 && strstr(key_path[i_path - 1], "sensor") == NULL)
