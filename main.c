@@ -588,7 +588,7 @@ void mqttS_task(void* param)
     strcat(topic_target,"/#");
 
     char up_pub_topic[128];
-    memset(up_pub_topic, '\0', sizeof(tmp_pub_topic) / sizeof(tmp_pub_topic[0]));
+    memset(up_pub_topic, '\0', sizeof(up_pub_topic) / sizeof(up_pub_topic[0]));
     strcpy(up_pub_topic, LEAGAL_PUB_TOPIC_HEAD);
     strcat(up_pub_topic, "/");
     strcat(up_pub_topic, LEAGAL_PUB_TOPIC_USER);
