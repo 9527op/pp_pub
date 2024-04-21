@@ -90,7 +90,7 @@ uint8_t inDebug = 0;
 // e2prom read
 // switch devices
 // 
-volatile uint8_t STORG_servo0State = 1;     //卧室窗帘  room0
+volatile uint8_t STORG_servo0State = 0;     //卧室窗帘  room0  默认关闭
 volatile uint8_t STORG_fan0State = 0;       //卧室风扇  room0
 volatile uint8_t STORG_fan1State = 0;       //客厅风扇  live
 volatile uint8_t STORG_light0State = 0;     //卧室灯 room0
@@ -99,7 +99,7 @@ volatile uint8_t STORG_light1State = 0;     //客厅灯 live
 // adc
 volatile uint8_t STORG_adc0Cha = 0;
 volatile int32_t STORG_adc0Val = 0;
-volatile int32_t STORG_switchLight = 1;
+volatile int32_t STORG_switchLight = 1;     //默认开启感光
 
 // dht11
 volatile uint8_t STORG_temperature = 0xff;       //温度      ------------------>temperature_integer
@@ -587,6 +587,16 @@ void mqttS_task(void* param)
     strcpy(topic_target,LEAGAL_SUB_TOPIC_HEAD);
     strcat(topic_target,"/#");
 
+    char up_pub_topic[64];
+    memset(up_pub_topic, '\0', sizeof(up_pub_topic) / sizeof(up_pub_topic[0]));
+    strcpy(up_pub_topic, LEAGAL_PUB_TOPIC_HEAD);
+    strcat(up_pub_topic, "/");
+    strcat(up_pub_topic, LEAGAL_PUB_TOPIC_USER);
+    strcat(up_pub_topic, "/");
+    strcat(up_pub_topic, IN_WHERE_STR);
+    strcat(up_pub_topic, "/");
+    strcat(up_pub_topic, "up");
+
     while(1)
     {
         LOG_I("to mqttS_task in %d\r\n", wifi_state);
@@ -594,7 +604,7 @@ void mqttS_task(void* param)
         {
             light_yellow();
 
-            mqtt_sub_start(topic_target);
+            mqtt_sub_start(topic_target, up_pub_topic);
             had_init_mqtt_sub = 1;
             LOG_I("to init_mqtt_subttS_task\r\n");
         }
@@ -938,10 +948,10 @@ void digRead_task(void* param)
 
 void switch_devices_task(void* param)
 {
-    uint8_t STORG_servo0State_old = 2;  //卧室窗帘 room0
-    uint8_t STORG_fan0State_old = 2;    //卧室风扇 room0
+    uint8_t STORG_servo0State_old = 0;  //卧室窗帘 room0 默认关闭
+    uint8_t STORG_fan0State_old = 0;    //卧室风扇 room0 默认关闭
     uint8_t STORG_fan1State_old = 2;    //客厅风扇 live
-    uint8_t STORG_light0State_old = 2; // 卧室灯 room0
+    uint8_t STORG_light0State_old = 0; // 卧室灯 room0 默认关闭
     uint8_t STORG_light1State_old = 2; // 客厅灯 live
 
 
