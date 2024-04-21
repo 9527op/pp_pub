@@ -587,7 +587,7 @@ void mqttS_task(void* param)
     strcpy(topic_target,LEAGAL_SUB_TOPIC_HEAD);
     strcat(topic_target,"/#");
 
-    char up_pub_topic[128];
+    char up_pub_topic[64];
     memset(up_pub_topic, '\0', sizeof(up_pub_topic) / sizeof(up_pub_topic[0]));
     strcpy(up_pub_topic, LEAGAL_PUB_TOPIC_HEAD);
     strcat(up_pub_topic, "/");
@@ -604,13 +604,9 @@ void mqttS_task(void* param)
         {
             light_yellow();
 
-            mqtt_sub_start(topic_target);
+            mqtt_sub_start(topic_target, up_pub_topic);
             had_init_mqtt_sub = 1;
             LOG_I("to init_mqtt_subttS_task\r\n");
-
-            //
-            // up msg send
-            mqtt_publier_a_time(up_pub_topic, "1");
         }
         else
         {
