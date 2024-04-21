@@ -47,8 +47,7 @@ extern uint8_t STORG_humidity_decimal;          //湿度      ------------------
 
 // 指纹fingerprint
 extern uint8_t STORG_openFingerprint; // 通过mqtt发送
-
-
+uint8_t openFingerprint_first = 1;      //STORG_openFingerprint为零时置为1，否则0
 
 // -------------------------------------------------------
 
@@ -488,12 +487,14 @@ void e2prom_read_0xA0(void)
 // page 11 0xB0
 void e2prom_write_0xB0(void)
 {
+    
     // 0xB1 temperature
     // 0xB2 humidity
     // 0xB3 temperature_decimal
     // 0xB4 humidity_decimal
     // 
     // 0xBE STORG_openFingerprint
+    
 
     // empty
     for(uint8_t i=0;i<16;i++)
@@ -535,8 +536,17 @@ void e2prom_write_0xB0(void)
     // 0xBE
     if(STORG_openFingerprint!=0&&STORG_openFingerprint<220)
     {
-        e2prom_senData[14]=STORG_openFingerprint;
+        if (openFingerprint_first)
+        {
+            e2prom_senData[14] = STORG_openFingerprint;
+            openFingerprint_first = 0;
+        }
         // STORG_openFingerprint = 0xFF;
+    }
+    else
+    {
+        // 此时STORG_openFingerprint应该为0
+        openFingerprint_first = 1;
     }
 
     // --------------------------------------------------------------------------------

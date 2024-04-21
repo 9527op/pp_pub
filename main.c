@@ -1423,14 +1423,29 @@ void odisplay_controller(uint8_t semicolon)
 
     // 无视semicolon，一直显示
 
+    
     // door
+    
+    while (STORG_openFingerprint != 0)
+    {
+        odisplay_door(1);
+        vTaskDelay(200 / portTICK_PERIOD_MS);
+    }
     odisplay_door(1);
-    vTaskDelay(400 / portTICK_PERIOD_MS);
+    // vTaskDelay(400 / portTICK_PERIOD_MS);
+    if(STORG_openFingerprint != 0)
+    {
+        return;
+    }
 
 
     // live
     odisplay_live(1);
-    vTaskDelay(400 / portTICK_PERIOD_MS);
+    // vTaskDelay(400 / portTICK_PERIOD_MS);
+    if(STORG_openFingerprint != 0)
+    {
+        return;
+    }
 
     // room0
     odisplay_room0(1);
@@ -1446,7 +1461,7 @@ void oledplay_wrap(void* param)
         ((void (*)())param)(display_semicolon);
         display_semicolon = !display_semicolon;
 
-        vTaskDelay(400 / portTICK_PERIOD_MS);
+        // vTaskDelay(400 / portTICK_PERIOD_MS);
     }
 }
 
