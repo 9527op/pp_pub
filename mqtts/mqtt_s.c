@@ -33,7 +33,7 @@ const char* port=UMQTT_TOSUB_PORT_TEST;
 const char* mqtts_name=UMQTT_TOSUB_NAME_TEST;
 const char* mqtts_pass=UMQTT_TOSUB_PASS_TEST;
 
-
+char *firstUp_ptr = NULL;
 
 shell_sig_func_ptr abort_exec_sub;
 
@@ -242,6 +242,7 @@ void mqtt_subscriber_init()
 
 static void mqtt_subscriber_a_topic(char *topic)
 {
+
     LOG_I("in mqtt_subscriber_a_topic\r\n");
 
     if(strlen(topic)<=0)
@@ -277,7 +278,13 @@ static void mqtt_subscriber_a_topic(char *topic)
     if (client_sub.error != MQTT_OK) {
         LOG_I("error: %s\r\n", mqtt_error_str(client_sub.error));
     }
-    
+
+    //
+    // up msg send
+    if (firstUp_ptr != NULL)
+    {
+        mqtt_publier_a_time(firstUp_ptr, "1");
+    }
     while(1)
     {
         vTaskDelay(100/portTICK_PERIOD_MS);
@@ -293,21 +300,23 @@ static void mqtt_subscriber_a_topic(char *topic)
 
 // mqtt_subscriber_a_topic(UMQTT_TOSUB_TOPIC_TEST);
 
-void mqtt_sub_start(char* toSubTopic)
+void mqtt_sub_start(char *toSubTopic, char *firstUp)
 {
+    // 
+    // 复制up信息主题
+    firstUp_ptr = firstUp;
+    
     // test
     // mqtt_subscriber_a_topic(UMQTT_TOSUB_TOPIC_TEST);
+    
 
     if(toSubTopic == NULL || strlen(toSubTopic)<=0)
     {
         return;
     }
     mqtt_subscriber_a_topic(toSubTopic);
+    
 }
-
-
-
-
 
 #ifdef CONFIG_SHELL
 #include <shell.h>
