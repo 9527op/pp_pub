@@ -438,7 +438,7 @@ void e2prom_read_0xA0(void)
     {
         if (wifi_state)
         {
-            STORG_fan1State = e2prom_recData[4];
+            STORG_fan1State = e2prom_recData[11];
             strcpy(temp_pub_topic, correct_pub_topic);
             strcat(temp_pub_topic, "/live/fan1");
 
@@ -479,39 +479,41 @@ void e2prom_write_0xB0(void)
     }
     // --------------------------------------------------------------------------------
 
+    // LOG_I("STORG_temperature_decimal is %d;;;STORG_humidity_decimal is %d\r\n", STORG_temperature_decimal, STORG_humidity_decimal);
+
     // 0xB1
     if(STORG_temperature!=0&&STORG_temperature<220)
     {
         e2prom_senData[1]=STORG_temperature;
-        STORG_temperature = 0xFF;
+        // STORG_temperature = 0xFF;
     }
 
     // 0xB2
-    if(STORG_humidity!=0&&STORG_humidity<220)
+    if (STORG_humidity != 0 && STORG_humidity < 220)
     {
-        e2prom_senData[2]=STORG_humidity;
-        STORG_humidity = 0xFF;
+        e2prom_senData[2] = STORG_humidity;
+        // STORG_humidity = 0xFF;
     }
 
     // 0xB3
-    if(STORG_temperature_decimal!=0&&STORG_temperature_decimal<220)
+    if (STORG_temperature_decimal < 220)
     {
-        e2prom_senData[3]=STORG_temperature_decimal;
-        STORG_temperature_decimal = 0xFF;
+        e2prom_senData[3] = STORG_temperature_decimal;
+        // STORG_temperature_decimal = 0xFF;
     }
 
     // 0xB4
-    if(STORG_humidity!=0&&STORG_humidity<220)
+    if (STORG_humidity_decimal < 220)
     {
-        e2prom_senData[4]=STORG_humidity;
-        STORG_humidity = 0xFF;
+        e2prom_senData[4] = STORG_humidity_decimal;
+        // STORG_humidity_decimal = 0xFF;
     }
 
     // 0xBE
     if(STORG_openFingerprint!=0&&STORG_openFingerprint<220)
     {
         e2prom_senData[14]=STORG_openFingerprint;
-        STORG_openFingerprint = 0xFF;
+        // STORG_openFingerprint = 0xFF;
     }
 
     // --------------------------------------------------------------------------------
@@ -529,6 +531,7 @@ void e2prom_write_0xB0(void)
             break;
         }
     }
+
 
 }
 

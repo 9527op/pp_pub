@@ -286,14 +286,12 @@ void FPM383C_Identify(void)
                 bflb_mtimer_delay_ms(800);
                 bflb_gpio_reset(led, GPIO_PIN_14);
 
-                bflb_mtimer_delay_ms(1800);
+                bflb_mtimer_delay_ms(1000);
                 pwm_sg90_turn_0();
 
 
                 // 重置接收数据缓存
                 memset(USART_ReceiveBuf, 0xFF, sizeof(USART_ReceiveBuf));
-                
-                return;
             }
             else
             {
@@ -312,9 +310,9 @@ void FPM383C_Identify(void)
 
                 // 重置接收数据缓存
                 memset(USART_ReceiveBuf, 0xFF, sizeof(USART_ReceiveBuf));
-                
-                return;
             }
+            STORG_openFingerprint = 0;
+            mqtt_pub_fingerPrint_state();
         }
     }
 }
@@ -409,23 +407,24 @@ void mqtt_pub_fingerPrint_state()
     }
 
     char tmp_pub_topic[50];
-    char *val_ptr = NULL;
     memset(tmp_pub_topic,0,50);
     strcpy(tmp_pub_topic,CONRRECT_MQTT_TOPIC);
 
     // fingperrint
-    if (STORG_openFingerprint != 0)
+    LOG_I("fingperprint state send\r\n");
+    strcat(tmp_pub_topic, "/sensor0_openFingerprint");
+    if(STORG_openFingerprint==1)
     {
-        LOG_I("fingperprint state send\r\n");
+        mqtt_publier_a_time(tmp_pub_topic, "1");
 
-        strcat(tmp_pub_topic, "/sensor0_openFingerprint");
-        val_ptr = intToChar(STORG_openFingerprint);
-
-        mqtt_publier_a_time(tmp_pub_topic, val_ptr);
-
-        STORG_openFingerprint = 0;
-        free(val_ptr);
-        val_ptr = NULL;
+    }
+    else if(STORG_openFingerprint==2)
+    {
+        mqtt_publier_a_time(tmp_pub_topic, "2");
+    }
+    else
+    {
+        mqtt_publier_a_time(tmp_pub_topic, "0");
     }
 }
 
