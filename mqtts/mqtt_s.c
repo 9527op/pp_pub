@@ -69,7 +69,7 @@ static int open_nb_socket(const char* addr, const char* port) {
     rv = getaddrinfo(addr, port, &hints, &servinfo);
     if(rv != 0) {
         LOG_W("Failed to open socket (getaddrinfo): %s\r\n", rv);
-        vTaskDelay(200/portTICK_PERIOD_MS);
+        // vTaskDelay(200/portTICK_PERIOD_MS);
         GLB_SW_System_Reset();
         return -1;
     }

@@ -54,14 +54,14 @@
 // 全部
 // 设置为0,语音控制端设置为1
 // 最终影响sub_logic_func函数中是否逻辑处理，switch_device分支（家具端使用，非switch_device分支（语音控制端使用
-#define CONTROLLER 0
-#define JUST_USING_I2C0 1
+#define CONTROLLER 1
+#define JUST_USING_I2C0 0
 
 // live 0
 // room0 1
 // door 2
 #define IN_WHERE 0
-#define IN_WHERE_STR "door"
+#define IN_WHERE_STR "live"
 
 // legal mqtt_s topic HEAD (using in sub_logic_func
 #define LEAGAL_SUB_TOPIC_HEAD "mytopicLegal"
@@ -79,9 +79,9 @@ volatile char *CONRRECT_MQTT_TOPIC = NULL;
 uint8_t dig_read16_use = 0;
 uint8_t dig_read17_use = 0;
 uint8_t adc0_use = 0;
-uint8_t dht11_use = 0;
+uint8_t dht11_use = 1;
 // for switch_devices_task and mqttP_task using
-uint8_t inDebug = 0;
+uint8_t inDebug = 1;
 
 // -------------------------------------------------------------------------------
 // -----------------------------状态变量-------------------------------------------
@@ -99,6 +99,8 @@ volatile uint8_t STORG_light1State = 0;     //客厅灯 live
 // adc
 volatile uint8_t STORG_adc0Cha = 0;
 volatile int32_t STORG_adc0Val = 0;
+volatile int32_t STORG_switchLight = 1;
+
 
 // dht11
 volatile uint8_t STORG_temperature = 0xff;       //温度      ------------------>temperature_integer
@@ -216,7 +218,7 @@ void i2c0_init(void)
 #define WIFI_HTTP_SERVER_STACK_SIZE  (1024 * 4)
 #define WIFI_HTTP_SERVERTASK_PRIORITY (15)
 // 
-#define OLED_STACK_SIZE  (1024*2)
+#define OLED_STACK_SIZE  (1024*3)
 #define OLED_DISPLAY_PRIORITY (8)
 // 
 #define TOLINK_STACK_SIZE  (1024*5)
@@ -247,7 +249,7 @@ void i2c0_init(void)
 #define FINGERPRINT_PRIORITY (4)
 // 
 #define TEST_STACK_SIZE  (1024*2)
-#define TEST_PRIORITY (3)
+#define TEST_PRIORITY (2)
 
 
 
@@ -304,7 +306,9 @@ uint32_t charToInt(char *oval)
 
 // set dropback in controller ; theRoom is debugger use
 // const char* sub_rooms[]={"theRoom","room0","live","dropback"};
-const char *sub_switch_devices[] = {"aDevice", "light0", "fan0", "servo0", "light1","fan1"};
+const char *sub_switch_devices[] = {"aDevice", "light0", "fan0", "servo0", "light1","fan1","switchLight"};
+extern uint8_t first_read;
+
 
 void sub_logic_func(char* topic_key,char* topic_val)
 {
@@ -353,6 +357,12 @@ void sub_logic_func(char* topic_key,char* topic_val)
 
     if (!strcmp(key_path[0], LEAGAL_SUB_TOPIC_HEAD) && !strcmp(key_path[1], LEAGAL_SUB_TOPIC_USER))
     {
+        // when a device up
+        if (!strcmp(key_path[i_path - 1], "up"))
+        {
+            first_read = 1;
+            goto sub_logic_func_end;
+        }
         //
         // the val is 1 or 0 switch device
         if (strlen(topic_val) == 1 && strstr(key_path[i_path - 1], "sensor") == NULL)
@@ -411,6 +421,10 @@ void sub_logic_func(char* topic_key,char* topic_val)
                         STORG_fan1State = val;
                         break;
                     case 6:
+                        /* switchLight */
+                        STORG_switchLight = val;
+                        break;
+                    case 7:
                         /* null */
                         break;
                     default:
@@ -425,7 +439,7 @@ void sub_logic_func(char* topic_key,char* topic_val)
         else
         {
             senesor_tmpValue = charToInt(topic_val);
-            LOG_W("%s val:%d---------------sub_logic_func_forSensors\r\n", key_path[i_path - 1], senesor_tmpValue);
+            LOG_W("%s val:%d---------------sub_logic_func_forSensors(in %s)\r\n", key_path[i_path - 1], senesor_tmpValue, key_path[2]);
             // controller using
             //
             if(!CONTROLLER)
@@ -465,7 +479,7 @@ void sub_logic_func(char* topic_key,char* topic_val)
             {
                 // dht11_humidity
                 STORG_temperature_decimal = senesor_tmpValue;
-                
+                LOG_W("%d---------------(in %d)\r\n", !strcmp(key_path[i_path - 1], "sensor0_temperature_decimal"), !strcmp(key_path[2], "live"));
             }
             else if(!strcmp(key_path[i_path - 1], "sensor0_humidity_decimal")&& !strcmp(key_path[2], "live"))
             {
@@ -479,6 +493,9 @@ void sub_logic_func(char* topic_key,char* topic_val)
                 // just 1
                 STORG_openFingerprint = senesor_tmpValue;
             }
+
+            // test
+            // LOG_W("%d---------------(in %d)\r\n", !strcmp(key_path[i_path - 1], "sensor0_temperature_decimal"), !strcmp(key_path[2], "live"));
         }
     }
     
@@ -870,43 +887,49 @@ void adc_task(void* param)
             taskYIELD();
         }
 
-        LOG_I("just light in adc_task\r\n");
-        // 判断是否启动灯光
-        switch (IN_WHERE)
+       
+
+        if(STORG_switchLight)
         {
-            // live 0
-            // room0 1
-            // STORG_light0State = 0;     //卧室灯 room0
-            // STORG_light1State = 0;     // 客厅灯 live
-        case 0:
-            if (STORG_adc0Val < watchDog_adc)
+            LOG_I("just light in adc_task\r\n");
+            // 判断是否启动灯光
+            switch (IN_WHERE)
             {
-                STORG_light1State = 0;
-                end_rgb();
-            }
-            else
-            {
-                STORG_light1State = 1;
-                start_rgb();
-            }
-            break;
+                // live 0
+                // room0 1
+                // STORG_light0State = 0;     //卧室灯 room0
+                // STORG_light1State = 0;     // 客厅灯 live
+            case 0:
+                if (STORG_adc0Val < watchDog_adc)
+                {
+                    STORG_light1State = 0;
+                    // end_rgb();
+                }
+                else
+                {
+                    STORG_light1State = 1;
+                    // start_rgb();
+                }
+                break;
 
-        case 1:
-            if (STORG_adc0Val < watchDog_adc)
-            {
-                STORG_light0State = 0;
-                end_rgb();
-            }
-            else
-            {
-                STORG_light0State = 1;
-                start_rgb();
-            }
-            break;
+            case 1:
+                if (STORG_adc0Val < watchDog_adc)
+                {
+                    STORG_light0State = 0;
+                    // end_rgb();
+                }
+                else
+                {
+                    STORG_light0State = 1;
+                    // start_rgb();
+                }
+                break;
 
-        default:
-            break;
+            default:
+                break;
+            }
         }
+        
 
         vTaskDelay(400/portTICK_PERIOD_MS);
     }
@@ -1162,17 +1185,17 @@ void odisplay_door(uint8_t semicolon)
     OLED_ReverseArea(0, 0, 128, 16);
 
     OLED_ShowString(0, 16, ">>>>>>>><<<<<<<<", OLED_8X16);
-    if (STORG_light0State == 0)
+    if (STORG_openFingerprint == 0)
     {
         OLED_ShowChinese(8, 32, "《房门：关闭》");
         OLED_ReverseArea(72, 32, 32, 16);
     }
-    else if(STORG_light0State == 1)
+    else if(STORG_openFingerprint == 1)
     {
         OLED_ShowChinese(8, 32, "《房门：开启》");
         OLED_ReverseArea(72, 32, 32, 16);
     }
-    else if(STORG_light0State == 2)
+    else if(STORG_openFingerprint == 2)
     {
         OLED_ShowChinese(18, 32, "《认证失败》");
     }
@@ -1210,14 +1233,22 @@ void odisplay_room0(uint8_t semicolon)
         OLED_ShowChinese(16, 0, "状态（卧室）");
     }
 
-    if (STORG_light0State)
+    if(STORG_switchLight==1 && CONTROLLER)
     {
-        OLED_ShowChinese(24, 16, "灯光：启动");
+        OLED_ShowChinese(24, 16, "灯光：自动");
     }
     else
     {
-        OLED_ShowChinese(24, 16, "灯光：关闭");
+        if (STORG_light0State)
+        {
+            OLED_ShowChinese(24, 16, "灯光：启动");
+        }
+        else
+        {
+            OLED_ShowChinese(24, 16, "灯光：关闭");
+        }
     }
+    
     if (STORG_fan0State)
     {
         OLED_ShowChinese(24, 32, "风扇：启动");
@@ -1261,6 +1292,7 @@ void odisplay_live(uint8_t semicolon)
     memset(bufTime,0,50);
 
     OLED_Clear();
+    
 
 
     if(local_init)
@@ -1391,14 +1423,29 @@ void odisplay_controller(uint8_t semicolon)
 
     // 无视semicolon，一直显示
 
+    
     // door
+    
+    while (STORG_openFingerprint != 0)
+    {
+        odisplay_door(1);
+        vTaskDelay(200 / portTICK_PERIOD_MS);
+    }
     odisplay_door(1);
-    vTaskDelay(400 / portTICK_PERIOD_MS);
+    // vTaskDelay(400 / portTICK_PERIOD_MS);
+    if(STORG_openFingerprint != 0)
+    {
+        return;
+    }
 
 
     // live
     odisplay_live(1);
-    vTaskDelay(400 / portTICK_PERIOD_MS);
+    // vTaskDelay(400 / portTICK_PERIOD_MS);
+    if(STORG_openFingerprint != 0)
+    {
+        return;
+    }
 
     // room0
     odisplay_room0(1);
@@ -1414,7 +1461,7 @@ void oledplay_wrap(void* param)
         ((void (*)())param)(display_semicolon);
         display_semicolon = !display_semicolon;
 
-        vTaskDelay(400 / portTICK_PERIOD_MS);
+        // vTaskDelay(400 / portTICK_PERIOD_MS);
     }
 }
 
@@ -1609,19 +1656,23 @@ void oledDisplay_test_task(void* param)
 
 void test_task(void* param)
 {
+    uint8_t try_times = 10;
     uint16_t upNow_watchdog = 3600;
     uint16_t upNow_flash = 0;
 
     char* upNow_ptr = NULL;
     time_t now = 0;
 
-    now = getLocalTime_ntp();
-    local_time = localtime(&now);
-    local_init = 1;
-
     while (start_ntp() != 0)
     {
         vTaskDelay(3000/portTICK_PERIOD_MS);
+        if (wifi_state)
+        {
+            if (--try_times <= 0)
+            {
+                vTaskDelete(test_task_hd);
+            }
+        }
     }
     now = getLocalTime_ntp();
     local_time = localtime(&now);
@@ -1706,7 +1757,7 @@ void create_server_task(void)
         xTaskCreate(toLink_task, (char*)"toLink_queue", TOLINK_STACK_SIZE, NULL, TOLINK_PRIORITY, &toLink_task_hd);
         
         // mqtt subcriber
-        // xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
+        xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
 
         // mqtt sensors states pub for deives
         // 
@@ -1745,7 +1796,7 @@ void create_server_task(void)
 
     // 控制端e2prom数据读取
     // e2prom
-    // xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
+    xTaskCreate(e2prom_task, (char*)"e2prom_task", E2PROM_STACK_SIZE, NULL, E2PROM_PRIORITY, &e2prom_task_hd);
 
     // 下面默认能打开的是有关于传感器一类
 
@@ -1769,8 +1820,7 @@ void create_server_task(void)
     // xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
 
 
-    // ----------------------------------------------------
-    // ----------------------------------------------------
+    //
     // switch devices
     // xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
 
@@ -1804,7 +1854,7 @@ int main(void)
 	/*OLED初始化 和 e2prom msgs初始化*/
 
 	OLED_Init();
-	// e2prom_i2cMsgs_init();
+	e2prom_i2cMsgs_init();
 
 
     // 

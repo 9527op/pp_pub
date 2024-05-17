@@ -16,7 +16,7 @@
 // legal mqtt_s user (using in sub_logic_func
 #define LEAGAL_PUB_TOPIC_USER "lzbUser"
 
-int16_t first_read = 1;
+volatile uint8_t first_read = 1;
 
 // ------------------------------------------
 extern struct bflb_device_s *i2c1;
@@ -35,6 +35,7 @@ extern uint8_t STORG_light1State;   //客厅灯
 // adc
 extern uint8_t STORG_adc0Cha;
 extern int32_t STORG_adc0Val;
+extern int32_t STORG_switchLight;
 
 // 温湿度写入
 extern uint8_t STORG_temperature;       //温度      ------------------>dht11_temperature
@@ -46,7 +47,7 @@ extern uint8_t STORG_humidity_decimal;          //湿度      ------------------
 
 // 指纹fingerprint
 extern uint8_t STORG_openFingerprint; // 通过mqtt发送
-
+uint8_t openFingerprint_first = 1;      //STORG_openFingerprint为零时置为1，否则0
 
 // -------------------------------------------------------
 
@@ -352,11 +353,31 @@ void e2prom_read_0xA0(void)
     // 0xA4    卧室窗帘
     // 0xAB    客厅风扇
 
-    LOG_W("STORG_fan0State:%02x\r\n", STORG_fan0State);
-    LOG_W("STORG_fan1State:%02x\r\n", STORG_fan1State);
-    LOG_W("STORG_light0State:%02x\r\n", STORG_light0State);
-    LOG_W("STORG_light1State:%02x\r\n", STORG_light1State);
-    LOG_W("STORG_servo0State:%02x\r\n", STORG_servo0State);
+    // LOG_W("STORG_fan0State:%02x\r\n", STORG_fan0State);
+    // LOG_W("STORG_fan1State:%02x\r\n", STORG_fan1State);
+    // LOG_W("STORG_light0State:%02x\r\n", STORG_light0State);
+    // LOG_W("STORG_light1State:%02x\r\n", STORG_light1State);
+    // LOG_W("STORG_servo0State:%02x\r\n", STORG_servo0State);
+    // LOG_W("STORG_switchLight:%02x\r\n", STORG_switchLight);
+
+    if (e2prom_recData[14] == 0 || e2prom_recData[14] == 1)
+    {
+        if (wifi_state)
+        {
+            STORG_switchLight = e2prom_recData[14];
+            strcpy(temp_pub_topic, correct_pub_topic);
+            strcat(temp_pub_topic, "/room0/switchLight");
+
+            if (STORG_switchLight)
+            {
+                mqtt_publier_a_time(temp_pub_topic, "1");
+            }
+            else
+            {
+                mqtt_publier_a_time(temp_pub_topic, "0");
+            }
+        }
+    }
 
     if (e2prom_recData[1] == 0 || e2prom_recData[1] == 1)
     {
@@ -438,7 +459,7 @@ void e2prom_read_0xA0(void)
     {
         if (wifi_state)
         {
-            STORG_fan1State = e2prom_recData[4];
+            STORG_fan1State = e2prom_recData[11];
             strcpy(temp_pub_topic, correct_pub_topic);
             strcat(temp_pub_topic, "/live/fan1");
 
@@ -453,6 +474,7 @@ void e2prom_read_0xA0(void)
         }
     }
 
+
     // set the 0xA0 to 0xff
     if (e2prom_recData[0] != watch_dog_0xA0)
     {
@@ -465,12 +487,14 @@ void e2prom_read_0xA0(void)
 // page 11 0xB0
 void e2prom_write_0xB0(void)
 {
+    
     // 0xB1 temperature
     // 0xB2 humidity
     // 0xB3 temperature_decimal
     // 0xB4 humidity_decimal
     // 
     // 0xBE STORG_openFingerprint
+    
 
     // empty
     for(uint8_t i=0;i<16;i++)
@@ -479,39 +503,50 @@ void e2prom_write_0xB0(void)
     }
     // --------------------------------------------------------------------------------
 
+    // LOG_I("STORG_temperature_decimal is %d;;;STORG_humidity_decimal is %d\r\n", STORG_temperature_decimal, STORG_humidity_decimal);
+
     // 0xB1
     if(STORG_temperature!=0&&STORG_temperature<220)
     {
         e2prom_senData[1]=STORG_temperature;
-        STORG_temperature = 0xFF;
+        // STORG_temperature = 0xFF;
     }
 
     // 0xB2
-    if(STORG_humidity!=0&&STORG_humidity<220)
+    if (STORG_humidity != 0 && STORG_humidity < 220)
     {
-        e2prom_senData[2]=STORG_humidity;
-        STORG_humidity = 0xFF;
+        e2prom_senData[2] = STORG_humidity;
+        // STORG_humidity = 0xFF;
     }
 
     // 0xB3
-    if(STORG_temperature_decimal!=0&&STORG_temperature_decimal<220)
+    if (STORG_temperature_decimal < 220)
     {
-        e2prom_senData[3]=STORG_temperature_decimal;
-        STORG_temperature_decimal = 0xFF;
+        e2prom_senData[3] = STORG_temperature_decimal;
+        // STORG_temperature_decimal = 0xFF;
     }
 
     // 0xB4
-    if(STORG_humidity!=0&&STORG_humidity<220)
+    if (STORG_humidity_decimal < 220)
     {
-        e2prom_senData[4]=STORG_humidity;
-        STORG_humidity = 0xFF;
+        e2prom_senData[4] = STORG_humidity_decimal;
+        // STORG_humidity_decimal = 0xFF;
     }
 
     // 0xBE
     if(STORG_openFingerprint!=0&&STORG_openFingerprint<220)
     {
-        e2prom_senData[14]=STORG_openFingerprint;
-        STORG_openFingerprint = 0xFF;
+        if (openFingerprint_first)
+        {
+            e2prom_senData[14] = STORG_openFingerprint;
+            openFingerprint_first = 0;
+        }
+        // STORG_openFingerprint = 0xFF;
+    }
+    else
+    {
+        // 此时STORG_openFingerprint应该为0
+        openFingerprint_first = 1;
     }
 
     // --------------------------------------------------------------------------------
@@ -529,6 +564,7 @@ void e2prom_write_0xB0(void)
             break;
         }
     }
+
 
 }
 
