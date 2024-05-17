@@ -55,13 +55,13 @@
 // 设置为0,语音控制端设置为1
 // 最终影响sub_logic_func函数中是否逻辑处理，switch_device分支（家具端使用，非switch_device分支（语音控制端使用
 #define CONTROLLER 0
-#define JUST_USING_I2C0 1
+#define JUST_USING_I2C0 0
 
 // live 0
 // room0 1
 // door 2
 #define IN_WHERE 0
-#define IN_WHERE_STR "door"
+#define IN_WHERE_STR "live"
 
 // legal mqtt_s topic HEAD (using in sub_logic_func
 #define LEAGAL_SUB_TOPIC_HEAD "mytopicLegal"
@@ -73,13 +73,13 @@
 #define LEAGAL_PUB_TOPIC_USER "lzbUser"
 
 
-//mqttP_task using
+//mqttP_task using for Sensors
 // 
 volatile char *CONRRECT_MQTT_TOPIC = NULL;
 uint8_t dig_read16_use = 0;
 uint8_t dig_read17_use = 0;
 uint8_t adc0_use = 0;
-uint8_t dht11_use = 0;
+uint8_t dht11_use = 1;
 // for switch_devices_task and mqttP_task using
 uint8_t inDebug = 0;
 
@@ -216,7 +216,7 @@ void i2c0_init(void)
 #define WIFI_HTTP_SERVER_STACK_SIZE  (1024 * 4)
 #define WIFI_HTTP_SERVERTASK_PRIORITY (15)
 // 
-#define OLED_STACK_SIZE  (1024*2)
+#define OLED_STACK_SIZE  (1024*3)
 #define OLED_DISPLAY_PRIORITY (8)
 // 
 #define TOLINK_STACK_SIZE  (1024*5)
@@ -247,7 +247,7 @@ void i2c0_init(void)
 #define FINGERPRINT_PRIORITY (4)
 // 
 #define TEST_STACK_SIZE  (1024*2)
-#define TEST_PRIORITY (3)
+#define TEST_PRIORITY (2)
 
 
 
@@ -425,7 +425,7 @@ void sub_logic_func(char* topic_key,char* topic_val)
         else
         {
             senesor_tmpValue = charToInt(topic_val);
-            LOG_W("%s val:%d---------------sub_logic_func_forSensors\r\n", key_path[i_path - 1], senesor_tmpValue);
+            LOG_W("%s val:%d---------------sub_logic_func_forSensors(in %s)\r\n", key_path[i_path - 1], senesor_tmpValue, key_path[2]);
             // controller using
             //
             if(!CONTROLLER)
@@ -465,7 +465,7 @@ void sub_logic_func(char* topic_key,char* topic_val)
             {
                 // dht11_humidity
                 STORG_temperature_decimal = senesor_tmpValue;
-                
+                LOG_W("%d---------------(in %d)\r\n", !strcmp(key_path[i_path - 1], "sensor0_temperature_decimal"), !strcmp(key_path[2], "live"));
             }
             else if(!strcmp(key_path[i_path - 1], "sensor0_humidity_decimal")&& !strcmp(key_path[2], "live"))
             {
@@ -479,6 +479,9 @@ void sub_logic_func(char* topic_key,char* topic_val)
                 // just 1
                 STORG_openFingerprint = senesor_tmpValue;
             }
+
+            // test
+            // LOG_W("%d---------------(in %d)\r\n", !strcmp(key_path[i_path - 1], "sensor0_temperature_decimal"), !strcmp(key_path[2], "live"));
         }
     }
     
@@ -579,6 +582,16 @@ void mqttS_task(void* param)
     strcpy(topic_target,LEAGAL_SUB_TOPIC_HEAD);
     strcat(topic_target,"/#");
 
+    char up_pub_topic[64];
+    memset(up_pub_topic, '\0', sizeof(up_pub_topic) / sizeof(up_pub_topic[0]));
+    strcpy(up_pub_topic, LEAGAL_PUB_TOPIC_HEAD);
+    strcat(up_pub_topic, "/");
+    strcat(up_pub_topic, LEAGAL_PUB_TOPIC_USER);
+    strcat(up_pub_topic, "/");
+    strcat(up_pub_topic, IN_WHERE_STR);
+    strcat(up_pub_topic, "/");
+    strcat(up_pub_topic, "up");
+
     while(1)
     {
         LOG_I("to mqttS_task in %d\r\n", wifi_state);
@@ -586,7 +599,7 @@ void mqttS_task(void* param)
         {
             light_yellow();
 
-            mqtt_sub_start(topic_target);
+            mqtt_sub_start(topic_target, up_pub_topic);
             had_init_mqtt_sub = 1;
             LOG_I("to init_mqtt_subttS_task\r\n");
         }
@@ -726,7 +739,7 @@ void mqttP_task(void* param)
 
                 val_ptr = intToChar(STORG_temperature);
                 mqtt_publier_a_time(tmp_pub_topic, val_ptr);
-                STORG_temperature_old = STORG_temperature;
+                // STORG_temperature_old = STORG_temperature;
 
                 free(val_ptr);
                 val_ptr = NULL;
@@ -739,7 +752,7 @@ void mqttP_task(void* param)
 
                 val_ptr = intToChar(STORG_humidity);
                 mqtt_publier_a_time(tmp_pub_topic, val_ptr);
-                STORG_humidity_old = STORG_humidity;
+                // STORG_humidity_old = STORG_humidity;
 
                 free(val_ptr);
                 val_ptr = NULL;
@@ -753,7 +766,7 @@ void mqttP_task(void* param)
 
                 val_ptr = intToChar(STORG_temperature_decimal);
                 mqtt_publier_a_time(tmp_pub_topic, val_ptr);
-                STORG_temperature_decimal_old = STORG_temperature_decimal;
+                // STORG_temperature_decimal_old = STORG_temperature_decimal;
 
                 free(val_ptr);
                 val_ptr = NULL;
@@ -766,7 +779,7 @@ void mqttP_task(void* param)
 
                 val_ptr = intToChar(STORG_humidity_decimal);
                 mqtt_publier_a_time(tmp_pub_topic, val_ptr);
-                STORG_humidity_decimal_old = STORG_humidity_decimal;
+                // STORG_humidity_decimal_old = STORG_humidity_decimal;
 
                 free(val_ptr);
                 val_ptr = NULL;
@@ -774,7 +787,7 @@ void mqttP_task(void* param)
         }
         
 
-        vTaskDelay(800/portTICK_PERIOD_MS);
+        vTaskDelay(1200/portTICK_PERIOD_MS);
     }
 
 }
@@ -1261,6 +1274,7 @@ void odisplay_live(uint8_t semicolon)
     memset(bufTime,0,50);
 
     OLED_Clear();
+    
 
 
     if(local_init)
@@ -1609,19 +1623,23 @@ void oledDisplay_test_task(void* param)
 
 void test_task(void* param)
 {
+    uint8_t try_times = 10;
     uint16_t upNow_watchdog = 3600;
     uint16_t upNow_flash = 0;
 
     char* upNow_ptr = NULL;
     time_t now = 0;
 
-    now = getLocalTime_ntp();
-    local_time = localtime(&now);
-    local_init = 1;
-
     while (start_ntp() != 0)
     {
         vTaskDelay(3000/portTICK_PERIOD_MS);
+        if (wifi_state)
+        {
+            if (--try_times <= 0)
+            {
+                vTaskDelete(test_task_hd);
+            }
+        }
     }
     now = getLocalTime_ntp();
     local_time = localtime(&now);
@@ -1706,11 +1724,11 @@ void create_server_task(void)
         xTaskCreate(toLink_task, (char*)"toLink_queue", TOLINK_STACK_SIZE, NULL, TOLINK_PRIORITY, &toLink_task_hd);
         
         // mqtt subcriber
-        // xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
+        xTaskCreate(mqttS_task, (char*)"mqttS_proc_task", MQTT_S_STACK_SIZE, NULL, MQTT_S_PRIORITY, &mqttS_task_hd);
 
         // mqtt sensors states pub for deives
         // 
-        // xTaskCreate(mqttP_task, (char *)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
+        xTaskCreate(mqttP_task, (char *)"mqttP_task", MQTT_P_STACK_SIZE, NULL, MQTT_P_PRIORITY, &mqttP_task_hd);
 
 
         // mqtt publisher in e2prom  for controller
@@ -1722,7 +1740,7 @@ void create_server_task(void)
         /*OLED一定要在循环中*/
         /*如果是设备端调用oledplay_wrap，并传入对应函数名为实参*/
         /*参数有：odisplay_controller、odisplay_live、odisplay_door*/
-        xTaskCreate(oledplay_wrap, (char*)"oledplay_wrap", OLED_STACK_SIZE, odisplay_controller, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
+        xTaskCreate(oledplay_wrap, (char*)"oledplay_wrap", OLED_STACK_SIZE, odisplay_live, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
         
         // xTaskCreate(odisplay_controller, (char*)"oldedisplay_proc_task", OLED_STACK_SIZE, NULL, OLED_DISPLAY_PRIORITY, &oldeDisplay_task_hd);
     }
@@ -1750,7 +1768,7 @@ void create_server_task(void)
     // 下面默认能打开的是有关于传感器一类
 
     // dht11
-    // xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
+    xTaskCreate(dht11_task, (char*)"dht11_task", DHT11_STACK_SIZE, NULL, DHT11_PRIORITY, &dht11_task_hd);
 
     // adc  接光照传感器，模拟值大于1500则打开灯光，否则关闭
     // xTaskCreate(adc_task, (char*)"adc_task", ADC_STACK_SIZE, NULL, ADC_PRIORITY, &adc_task_hd);
@@ -1769,10 +1787,9 @@ void create_server_task(void)
     // xTaskCreate(fingerprint_task, (char*)"fingerprint_task", FINGERPRINT_STACK_SIZE, NULL, FINGERPRINT_PRIORITY, &fingerprint_task_hd);
 
 
-    // ----------------------------------------------------
-    // ----------------------------------------------------
+    //
     // switch devices
-    // xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
+    xTaskCreate(switch_devices_task, (char*)"switch_devices_task", SWITCH_DEVICES_STACK_SIZE, NULL, SWITCH_DEVICES_PRIORITY, &switch_devices_task_hd);
 
 
 
